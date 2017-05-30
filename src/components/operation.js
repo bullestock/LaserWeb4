@@ -40,7 +40,7 @@ import { confirm } from './laserweb'
 
 import { SETTINGS_INITIALSTATE } from '../reducers/settings'
 
-import { ContextMenu, MenuItem, ContextMenuTrigger } from "react-contextmenu";
+//import { ContextMenu, MenuItem, ContextMenuTrigger } from "react-contextmenu";
 import "../styles/context-menu.css";
 
 function StringInput(props) {
@@ -200,8 +200,9 @@ class Field extends React.Component {
         if (field.check && !field.check(op[field.name], settings, op))
             error = <Error operationsBounds={operationsBounds} message={(typeof field.error == 'function') ? field.error(op[field.name], settings, op) : field.error} />;
 
-        let Ctx = field.contextMenu;
-        let label = (Ctx) ? (<Ctx {...{ dispatch, op, field, settings }}><span style={{ borderBottom: "2px dashed blue", cursor: "context-menu" }}>{field.label}</span></Ctx>) : field.label;
+        //let Ctx = field.contextMenu;
+        //let label = (Ctx) ? (<Ctx {...{ dispatch, op, field, settings }}><span style={{ borderBottom: "2px dashed blue", cursor: "context-menu" }}>{field.label}</span></Ctx>) : field.label;
+        let label= field.label;
 
         return (
             <GetBounds Type="tr">
@@ -346,7 +347,7 @@ const checkPassDepth = {
     error: (v, settings, op) => { return (op.type.match(/^Laser/)) ? checkGE0.error : checkPositive.error },
 }
 
-
+/*
 const FieldContextMenu = (id = uuid.v4()) => {
     return ({ children, dispatch, op, field, settings }) => {
         let ctx = <ContextMenu id={id}>
@@ -355,7 +356,7 @@ const FieldContextMenu = (id = uuid.v4()) => {
         return <div><ContextMenuTrigger id={id} holdToDisplay={1000}>{children}</ContextMenuTrigger>{ctx}</div>
     }
 }
-
+*/
 export const OPERATION_FIELDS = {
     name: { name: 'name', label: 'Name', units: '', input: StringInput },
 
@@ -377,13 +378,13 @@ export const OPERATION_FIELDS = {
     stepOver: { name: 'stepOver', label: 'Step Over', units: '%', input: NumberInput, ...checkStepOver },
     passDepth: { name: 'passDepth', label: 'Pass Depth', units: 'mm', input: NumberInput, ...checkPassDepth, ...ifUseZ },
     cutDepth: { name: 'cutDepth', label: 'Final Cut Depth', units: 'mm', input: NumberInput, ...checkPositive },
-    startHeight: { name: 'startHeight', label: 'Start Height', units: 'mm', input: StringInput, contextMenu: FieldContextMenu(), ...checkZHeight, ...ifUseZ },
+    startHeight: { name: 'startHeight', label: 'Start Height', units: 'mm', input: StringInput,  ...checkZHeight, ...ifUseZ },//contextMenu: FieldContextMenu(),
     clearance: { name: 'clearance', label: 'ZClearance', units: 'mm', input: NumberInput, ...checkGE0 },
     segmentLength: { name: 'segmentLength', label: 'Segment', units: 'mm', input: NumberInput, ...checkGE0 },
     ramp: { name: 'ramp', label: 'Ramp Plunge', units: '', input: ToggleInput },
 
     plungeRate: { name: 'plungeRate', label: 'Plunge Rate', units: 'mm/min', input: NumberInput, ...checkFeedRateRange('Z') },
-    cutRate: { name: 'cutRate', label: 'Cut Rate', units: 'mm/min', input: NumberInput, ...checkFeedRateRange('XY'), contextMenu: FieldContextMenu() },
+    cutRate: { name: 'cutRate', label: 'Cut Rate', units: 'mm/min', input: NumberInput, ...checkFeedRateRange('XY') }, //, contextMenu: FieldContextMenu()
     toolSpeed: { name: 'toolSpeed', label: 'Tool Speed (0=Off)', units: 'rpm', input: NumberInput, ...checkFeedRateRange('S') },
 
     useA: { name: 'useA', label: 'Use A Axis', units: '', input: ToggleInput },
