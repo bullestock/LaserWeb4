@@ -1,8 +1,8 @@
 
 import omit from 'object.omit'
-import { deepMerge } from "../lib/helpers"
+import { deepMerge, sendAsFile } from "../lib/helpers"
 import generateName from 'sillyname'
-import uuid from 'node-uuid';
+import uuidv4 from 'uuid/v4';
 
 import { actionTypes } from 'redux-localstorage'
 
@@ -10,10 +10,17 @@ import { OPERATION_INITIALSTATE } from './operation'
 
 import CommandHistory from '../components/command-history'
 
-import { Validator } from 'jsonschema';
-
 export const MATERIALDB_INITIALSTATE = require("../data/lw.materials/material-database.json");
 export const MATERIALDB_SCHEMA = require("../data/lw.materials/material-database.spec.json");
+
+import { confirm } from '../components/laserweb'
+import stringify from 'json-stringify-pretty-compact';
+
+import Ajv from 'ajv';
+const ajv = new Ajv();
+      ajv.addMetaSchema(require('ajv/lib/refs/json-schema-draft-04.json'));
+
+export const validate = ajv.compile(MATERIALDB_SCHEMA);
 
 function generateInteger(min, max) {
     return Math.floor(Math.random() * (max - min)) + min;
@@ -21,7 +28,7 @@ function generateInteger(min, max) {
 
 const GROUP_TEMPLATE = () => {
     return {
-        id: uuid.v4(),
+        id: uuidv4(),
         name: generateName(),
         notes: "",
         template: PRESET_TEMPLATE('Laser Cut'),
@@ -31,7 +38,7 @@ const GROUP_TEMPLATE = () => {
 
 const PRESET_TEMPLATE = (type, machineProfile = null) => {
     return {
-        id: uuid.v4(),
+        id: uuidv4(),
         name: "** " + generateName() + " **",
         notes: "",
         type: type,
@@ -95,6 +102,19 @@ export const materialDatabase = (state = MATERIALDB_INITIALSTATE, action) => {
 
         case "MATERIALDB_DOWNLOAD":
             return state;
+
+        case "MATERIALDB_IMPORT":
+            let __state=state.slice();
+            let { file, database } = action.payload;
+            database.forEach(i=>{
+                let m=state.find((v)=>(v.id==i.id))
+                if (!m) {
+                    __state.push(i);
+                } else {
+                    CommandHistory.warn(`Material Database Item "${file}.${m.id}" found on database. Won't be replaced.`)
+                }
+            })
+            return __state;
 
         case "MATERIALDB_GROUP_ADD":
             state = [...state, GROUP_TEMPLATE()];
@@ -202,19 +222,27 @@ export const materialDatabase = (state = MATERIALDB_INITIALSTATE, action) => {
 
         case actionTypes.INIT:
             if (action.payload) {
-                let lockedState = MATERIALDB_INITIALSTATE.slice().map((vendor) => { return { ...vendor, _locked: true } });
-                let v = new Validator();
-                let result =  v.validate(action.payload.materialDatabase || {},MATERIALDB_SCHEMA);
-
-                if (result.valid) {
-                    return Object.assign(action.payload.materialDatabase || {}, lockedState);
+                let lockedState = MATERIALDB_INITIALSTATE.slice().map((vendor) => { 
+                    return  (vendor._locked!==false) ? { ...vendor, _locked: true } : vendor
+                });
+                let currentState = action.payload.materialDatabase || []
+                if (validate(currentState)) {
+                    if (currentState.length) {
+                        lockedState.forEach((l,i)=>{ if (l._locked && !currentState.find((f)=>{ return f.id == l.id })) currentState=[l, ...currentState];})
+                    } else {
+                        currentState=lockedState;
+                    }
+                    return currentState;
                 } else {
+                    let backup = stringify(currentState);
+                    confirm("Material Database corrupt/obsolete. Restoring. Ok download a backup, Cancel to continue.",function(data){
+                        if (data) sendAsFile('LaserWeb-MaterialDatabase-Backup.json',backup,'application/json')
+                    })
                     CommandHistory.error("Material Database corrupt/obsolete. Restoring.")
-                    console.error(result);
+                    console.error(validate.errors);
                     return lockedState;
                 }
             }
-            return state;
 
         default:
             return state;

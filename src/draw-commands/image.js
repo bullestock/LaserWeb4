@@ -13,29 +13,31 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import { mat4 } from 'gl-matrix';
+
 export function image(drawCommands) {
     let program = drawCommands.compile({
         vert: `
             precision mediump float;
-            uniform mat4 perspective; 
-            uniform mat4 view;
-            uniform vec3 location;
+            uniform mat4 transform; 
             uniform vec2 size;
             attribute vec2 position;
             varying vec2 coord;
             void main() {
                 coord = position;
-                gl_Position = perspective * view * vec4(vec3(position * size, 0) + location, 1);
+                gl_Position = transform * vec4(position * size, 0, 1);
             }`,
         frag: `
             precision mediump float;
             uniform sampler2D texture;
             uniform bool selected;
+            uniform float alpha;
             varying vec2 coord;
             void main() {
                 vec4 tex = texture2D(texture, vec2(coord.x, 1.0 - coord.y), 0.0);
                 if(selected)
                     tex = mix(tex, vec4(0.0, 0.0, 1.0, 1.0), .5);
+                tex.a *= alpha;
                 gl_FragColor = tex;
             }`,
         attrs: {
@@ -43,11 +45,20 @@ export function image(drawCommands) {
         },
     });
     let data = drawCommands.createBuffer(new Float32Array([0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0]));
-    return ({perspective, view, location, size, texture, selected}) => {
+    return ({ perspective, view, transform2d, texture, selected, alpha = 1 }) => {
+        let t = transform2d;
+        let transform =
+            mat4.multiply([], perspective,
+                mat4.multiply([], view, [
+                    t[0], t[1], 0, 0,
+                    t[2], t[3], 0, 0,
+                    0, 0, 1, 0,
+                    t[4], t[5], 0, 1]));
+        let size = [texture.width, texture.height];
         drawCommands.execute({
             program,
             primitive: drawCommands.gl.TRIANGLES,
-            uniforms: { perspective, view, location, size, texture, selected },
+            uniforms: { transform, size, texture, selected, alpha },
             buffer: {
                 data,
                 stride: 8,

@@ -19,7 +19,8 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import { connect } from 'react-redux';
 
-import { loadDocument, setDocumentAttrs } from '../actions/document';
+import { loadDocument, setDocumentAttrs, cloneDocumentSelected, selectDocuments,colorDocumentSelected,removeDocumentSelected } from '../actions/document';
+
 import { setGcode, generatingGcode } from '../actions/gcode';
 import { resetWorkspace } from '../actions/laserweb';
 import { Documents } from './document';
@@ -38,14 +39,15 @@ import Icon from './font-awesome'
 import { alert, prompt, confirm } from './laserweb'
 
 import CommandHistory from './command-history'
-import { FileField } from './forms'
+import { FileField, Info, ColorPicker, SearchButton } from './forms'
+
+import { promisedImage, imageTagPromise } from './image-filters';
 
 export const DOCUMENT_FILETYPES = '.png,.jpg,.jpeg,.bmp,.gcode,.g,.svg,.dxf,.tap,.gc,.nc'
 
-
 function NoDocumentsError(props) {
-    let { documents, camBounds } = props;
-    if (documents.length === 0)
+    let { settings, documents, operations, camBounds } = props;
+    if (documents.length === 0 && (operations.length === 0 || !settings.toolCreateEmptyOps))
         return <GetBounds Type="span"><Error operationsBounds={camBounds} message='Click here to begin' /></GetBounds>;
     else
         return <span />;
@@ -56,7 +58,6 @@ function GcodeProgress({ gcoding, onStop }) {
 }
 
 GcodeProgress = connect((state) => { return { gcoding: state.gcode.gcoding } })(GcodeProgress)
-
 
 export class CAMValidator extends React.Component {
     render() {
@@ -69,23 +70,25 @@ export class CAMValidator extends React.Component {
 
 CAMValidator = connect((state) => { return { documents: state.documents.length } })(CAMValidator)
 
-
 let __interval;
 
 class Cam extends React.Component {
 
+    constructor(props){
+        super(props);
+        this.state={filter:null}
+    }
 
     componentWillMount() {
         let that = this
         window.generateGcode = e => {
-
             let { settings, documents, operations } = that.props;
 
             let percent = 0;
-            __interval= setInterval(()=>{
-                that.props.dispatch(generatingGcode(true, isNaN(percent)? 0:Number(percent))); 
-            },100)
-            
+            __interval = setInterval(() => {
+                that.props.dispatch(generatingGcode(true, isNaN(percent) ? 0 : Number(percent)));
+            }, 100)
+
             let QE = getGcode(settings, documents, operations, that.props.documentCacheHolder,
                 (msg, level) => { CommandHistory.write(msg, level); },
                 (gcode) => {
@@ -120,15 +123,19 @@ class Cam extends React.Component {
             nextProps.bounds !== this.props.bounds ||
             nextProps.gcode !== this.props.gcode ||    // Needed for saveGcode() to work
             nextProps.gcoding.percent !== this.props.gcoding.percent ||
-            nextProps.gcoding.enable !== this.props.gcoding.enable
+            nextProps.gcoding.enable !== this.props.gcoding.enable ||
+            nextState.filter !== this.state.filter
         );
     }
 
+    
+
     render() {
-        let { documents, operations, currentOperation, toggleDocumentExpanded, loadDocument, bounds } = this.props;
+        let { settings, documents, operations, currentOperation, toggleDocumentExpanded, loadDocument, bounds } = this.props;
         let validator = ValidateSettings(false)
         let valid = validator.passes();
-
+        let someSelected=documents.some((i)=>(i.selected));
+        
         return (
             <div style={{ overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <div className="panel panel-danger" style={{ marginBottom: 0 }}>
@@ -156,27 +163,38 @@ class Cam extends React.Component {
                             <tbody>
                                 <tr>
                                     <td>
-                                        <label>Documents</label>
+                                        <label>Documents {Info(<small>Tip:  Hold <kbd>Ctrl</kbd> to click multiple documents</small>)}</label>
                                     </td>
-                                    <td>
-                                        <FileField style={{ float: 'right', position: 'relative', cursor: 'pointer' }} onChange={loadDocument} accept={DOCUMENT_FILETYPES}>
+                                    <td style={{display:"flex", justifyContent: "flex-end" }}>
+                                        
+                                        <FileField style={{   position: 'relative', cursor: 'pointer' }} onChange={loadDocument} accept={DOCUMENT_FILETYPES}>
                                             <button title="Add a DXF/SVG/PNG/BMP/JPG document to the document tree" className="btn btn-xs btn-primary"><i className="fa fa-fw fa-folder-open" />Add Document</button>
-                                            {(this.props.panes.visible) ? <NoDocumentsError camBounds={bounds} documents={documents} /> : undefined}
-                                        </FileField>
+                                            {(this.props.panes.visible) ? <NoDocumentsError camBounds={bounds} settings={settings} documents={documents} operations={operations} /> : undefined}
+                                        </FileField>&nbsp;
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td colSpan='2'>
-                                        <small>Tip:  Hold <kbd>Ctrl</kbd> to click multiple documents</small>
-                                    </td>
-                                </tr>
+                               
                             </tbody>
                         </table>
                     </div>
                 </div>
                 <Splitter style={{ flexShrink: 0 }} split="horizontal" initialSize={100} resizerStyle={{ marginTop: 2, marginBottom: 2 }} splitterId="cam-documents">
-                    <div style={{ overflowY: 'auto' }}>
-                        <Documents documents={documents} toggleExpanded={toggleDocumentExpanded} />
+                    <div style={{height:"100%", display:"flex", flexDirection:"column"}} >
+                        <div style={{ overflowY: 'auto', flexGrow:1 }}><Documents documents={documents} filter={this.state.filter} toggleExpanded={toggleDocumentExpanded} /></div>
+                        {documents.length ? <ButtonToolbar bsSize="xsmall" bsStyle="default">
+                            
+                            <ButtonGroup>
+                                <Button  bsStyle="info" bsSize="xsmall" onClick={e=>{this.props.dispatch(selectDocuments(true))}} title="Select all"><Icon name="cubes"/></Button>
+                                <Button  bsStyle="default" bsSize="xsmall" onClick={e=>{this.props.dispatch(selectDocuments(false))}} title="Select none"><Icon name="cubes"/></Button>
+                            </ButtonGroup>
+                            <Button  bsStyle="warning" bsSize="xsmall" disabled={!someSelected} onClick={e=>{this.props.dispatch(cloneDocumentSelected())}} title="Clone selected"><Icon name="copy"/></Button>
+                            <Button  bsStyle="danger" bsSize="xsmall" disabled={!someSelected} onClick={e=>{this.props.dispatch(removeDocumentSelected())}} title="Remove selected"><Icon name="trash"/></Button>
+                            <ButtonGroup>
+                                <ColorPicker to="rgba" icon="pencil" bsSize="xsmall" disabled={!someSelected} onClick={v=>this.props.dispatch(colorDocumentSelected({strokeColor:v||[0,0,0,1]}))}/>
+                                <ColorPicker to="rgba" icon="paint-brush" bsSize="xsmall" disabled={!someSelected} onClick={v=>this.props.dispatch(colorDocumentSelected({fillColor:v||[0,0,0,0]}))}/>
+                            </ButtonGroup>
+                            <SearchButton bsStyle="primary" bsSize="xsmall" search={this.state.filter} onSearch={filter=>{this.setState({filter})}} placement="bottom"><Icon name="search"/></SearchButton>
+                            </ButtonToolbar>:undefined}
                     </div>
                 </Splitter>
                 <Alert bsStyle="success" style={{ padding: "4px", marginBottom: 7 }}>
@@ -204,48 +222,10 @@ class Cam extends React.Component {
     }
 };
 
-
-const promisedImage = (path) => {
-    return new Promise(resolve => {
-        let img = new Image();
-        img.onload = () => { resolve(img) }
-        img.src = path;
-    })
-}
-
-const imageTagPromise = (tags) => {
-    return new Promise(resolve => {
-        let images = [];
-        const walker = (tag) => {
-            if (tag.name === 'image')
-                images.push(tag);
-            if (tag.children)
-                tag.children.forEach(t => walker(t))
-        }
-
-        const consumer = () => {
-            if (images.length) {
-                let tag = images.shift()
-                let dataURL = tag.element.getAttribute('xlink:href')
-                if (dataURL.substring(0, 5) !== 'data:')
-                    return consumer();
-                let image = new Image();
-                image.onload = () => { tag.naturalWidth = image.naturalWidth; tag.naturalHeight = image.naturalHeight; consumer() }
-                image.src = dataURL;
-            } else {
-                resolve(tags);
-            }
-        }
-
-        walker(tags);
-        consumer();
-    })
-}
-
 Cam = connect(
     state => ({
         settings: state.settings, documents: state.documents, operations: state.operations, currentOperation: state.currentOperation, gcode: state.gcode.content, gcoding: state.gcode.gcoding, dirty: state.gcode.dirty, panes: state.panes,
-        saveGcode: (e) => { prompt('Save as', 'gcode.gcode', (file) => { if (file !== null) sendAsFile(appendExt(file,'.gcode'), state.gcode.content) }, !e.shiftKey) },
+        saveGcode: (e) => { prompt('Save as', 'gcode.gcode', (file) => { if (file !== null) sendAsFile(appendExt(file, '.gcode'), state.gcode.content) }, !e.shiftKey) },
         viewGcode: () => openDataWindow(state.gcode.content),
     }),
     dispatch => ({
@@ -255,7 +235,7 @@ Cam = connect(
             dispatch(setGcode(""))
         },
         resetWorkspace: () => {
-            confirm("Are you sure?", () => { dispatch(resetWorkspace()); })
+            confirm("Are you sure?", (data) => { if (data) dispatch(resetWorkspace()); })
         },
         loadDocument: (e, modifiers = {}) => {
             // TODO: report errors
@@ -270,12 +250,12 @@ Cam = connect(
                         parser.parse(reader.result)
                             .then((tags) => {
                                 let captures = release(true);
-                                let warns = captures.filter(i => i.method == 'warn') 
-                                let errors = captures.filter(i => i.method == 'errors') 
+                                let warns = captures.filter(i => i.method == 'warn')
+                                let errors = captures.filter(i => i.method == 'errors')
                                 if (warns.length)
-                                    CommandHistory.dir("The file has minor issues. Please check document is correctly loaded!",warns, 2)
+                                    CommandHistory.dir("The file has minor issues. Please check document is correctly loaded!", warns, 2)
                                 if (errors.length)
-                                    CommandHistory.dir("The file has serious issues. If you think is not your fault, report to LW dev team attaching the file.",errors, 3)
+                                    CommandHistory.dir("The file has serious issues. If you think is not your fault, report to LW dev team attaching the file.", errors, 3)
 
                                 //onsole.log('loadDocument: imageTagPromise');
                                 imageTagPromise(tags).then((tags) => {
@@ -286,7 +266,7 @@ Cam = connect(
                             .catch((e) => {
                                 //console.log('loadDocument: catch:', e);
                                 release(true);
-                                CommandHistory.dir("The file has serious issues. If you think is not your fault, report to LW dev team attaching the file.",String(e), 3)
+                                CommandHistory.dir("The file has serious issues. If you think is not your fault, report to LW dev team attaching the file.", String(e), 3)
                                 console.error(e)
                             })
 
