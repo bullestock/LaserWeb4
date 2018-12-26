@@ -871,6 +871,19 @@ export function resetMachine() {
     }
 }
 
+export function turnExhaustOn() {
+    if (serverConnected) {
+        if (machineConnected){
+            CommandHistory.error('Exhaust On')
+            socket.emit('exhaustOn');
+        } else {
+            CommandHistory.error('Machine is not connected!')
+        }
+    } else {
+        CommandHistory.error('Server is not connected!')
+    }
+}
+
 export function playpauseMachine() {
     if (serverConnected) {
         if (machineConnected){

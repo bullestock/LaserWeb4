@@ -14,7 +14,7 @@ import { setWorkspaceAttrs } from '../actions/workspace';
 import CommandHistory from './command-history';
 
 import { Input, TextField, NumberField, ToggleField, SelectField } from './forms';
-import { runCommand, runJob, pauseJob, resumeJob, abortJob, clearAlarm, setZero, gotoZero, setPosition, home, probe, checkSize, laserTest, jog, jogTo, feedOverride, spindleOverride, resetMachine } from './com.js';
+import { runCommand, runJob, pauseJob, resumeJob, abortJob, clearAlarm, setZero, gotoZero, setPosition, home, probe, checkSize, laserTest, jog, jogTo, feedOverride, spindleOverride, resetMachine, turnExhaustOn } from './com.js';
 import { MacrosBar } from './macros';
 
 import '../styles/index.css'
@@ -227,6 +227,12 @@ class Jog extends React.Component {
     jogAminus(event) {
         event.preventDefault();
         if (!playing || m0) this.jog('A', '-')
+    }
+
+    exhaustOn(event) {
+        event.preventDefault();
+        if (!playing || m0)
+            turnExhaustOn();
     }
 
     escapeX( event ) {
@@ -740,6 +746,15 @@ class Jog extends React.Component {
                                                     <i className="fa fa-power-off fa-stack-1x"></i>
                                                     <strong className="fa-stack-1x icon-top-text">Motors</strong>
                                                     <strong className="fa-stack-1x icon-bot-text">Off</strong>
+                                                </span>
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <button id="exhaustOn" type="button" data-title="Exhaust On" className="btn btn-ctl btn-default" onClick={(e) => { this.exhaustOn(e) }}>
+                                                <span className="fa-stack fa-1x">
+                                                    <i className="fa fa-power-off fa-stack-1x"></i>
+                                                    <strong className="fa-stack-1x icon-top-text">Exhaust</strong>
+                                                    <strong className="fa-stack-1x icon-bot-text">On</strong>
                                                 </span>
                                             </button>
                                         </td>
