@@ -94,7 +94,7 @@ export const alert = (unsafeMessage) => {
 }
 
 const updateTitle=()=>{
-    document.title = `Laserweb ${version}`;
+    document.title = `Laserweb ${version} (Hal9k)`;
 }
 
 class LaserWeb extends React.Component {
