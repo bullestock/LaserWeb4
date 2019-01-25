@@ -18,6 +18,7 @@ import io from 'socket.io-client';
 var socket, connectVia;
 var serverConnected = false;
 var machineConnected = false;
+var exhaustOn = false;
 var jobStartTime = -1;
 var accumulatedJobTime = 0;
 var playing = false;
@@ -493,6 +494,10 @@ class Com extends React.Component {
         socket.emit('closePort');
     }
 
+    handlePowerOff() {
+        CommandHistory.write('Powering off', CommandHistory.INFO);
+        socket.emit('powerOff');
+    }
 
     render() {
         let {settings, dispatch} = this.props;
@@ -525,6 +530,10 @@ class Com extends React.Component {
                             <Button id="connect" bsClass="btn btn-xs btn-info" onClick={(e)=>{this.handleConnectMachine(e)}}><Icon name="share" /> Connect</Button>
                             <Button id="disconnect" bsClass="btn btn-xs btn-danger" onClick={(e)=>{this.handleDisconnectMachine(e)}}><Glyphicon glyph="trash" /> Disconnect</Button>
                         </ButtonGroup>
+                    </Panel>
+
+                    <Panel collapsible header="Power" bsStyle="primary" defaultExpanded={true}>
+                        <Button id="powerOff" bsClass="btn btn-xs btn-info" onClick={(e)=>{this.handlePowerOff(e)}}><Glyphicon glyph="off" /> Power off</Button>
                     </Panel>
                 </PanelGroup>
             </div>
@@ -913,15 +922,29 @@ export function resetMachine() {
     }
 }
 
-export function turnExhaustOn() {
+export function toggleExhaust() {
     if (serverConnected) {
         if (machineConnected){
-            CommandHistory.error('Exhaust On')
-            socket.emit('exhaustOn');
-        } else {
+            if (exhaustOn)
+            {
+                CommandHistory.error('Exhaust Off');
+                socket.emit('exhaustOn', '0');
+                exhaustOn = false;
+            }
+            else
+            {
+                CommandHistory.error('Exhaust On');
+                socket.emit('exhaustOn', '1');
+                exhaustOn = true;
+            }
+        }
+        else
+        {
             CommandHistory.error('Machine is not connected!')
         }
-    } else {
+    }
+    else
+    {
         CommandHistory.error('Server is not connected!')
     }
 }

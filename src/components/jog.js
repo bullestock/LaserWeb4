@@ -14,7 +14,7 @@ import { setWorkspaceAttrs } from '../actions/workspace';
 import CommandHistory from './command-history';
 
 import { Input, TextField, NumberField, ToggleField, SelectField } from './forms';
-import { runCommand, runJob, pauseJob, resumeJob, abortJob, clearAlarm, setZero, gotoZero, setPosition, home, probe, checkSize, laserTest, jog, jogTo, feedOverride, spindleOverride, resetMachine, turnExhaustOn } from './com.js';
+import { runCommand, runJob, pauseJob, resumeJob, abortJob, clearAlarm, setZero, gotoZero, setPosition, home, probe, checkSize, laserTest, jog, jogTo, feedOverride, spindleOverride, resetMachine, toggleExhaust } from './com.js';
 import { MacrosBar } from './macros';
 
 import '../styles/index.css'
@@ -232,7 +232,7 @@ class Jog extends React.Component {
     exhaustOn(event) {
         event.preventDefault();
         if (!playing || m0)
-            turnExhaustOn();
+            toggleExhaust();
     }
 
     escapeX( event ) {
@@ -393,12 +393,13 @@ class Jog extends React.Component {
     }
 
     checkGcodeBounds(gcode){
+        CommandHistory.warn("GCODE: "+gcode);
         let bounds=this.getGcodeBounds(gcode)
         let {settings} = this.props
         if (bounds && (
-            (bounds.xMax >settings.machineWidth) || (bounds.xMin < 0) ||
+            (bounds.xMax > settings.machineWidth) || (bounds.xMin < 0) ||
             (bounds.yMax > settings.machineHeight) || (bounds.yMin < 0))) {
-                CommandHistory.warn("Warning: Gcode out of machine bounds, can lead to running work halt")
+                CommandHistory.warn("Warning: Gcode out of machine bounds (" + settings.machineWidth + "x" + settings.machineHeight + "), can lead to running work halt")
                 this.setState({'warnings':"Warning: Gcode out of machine bounds, can lead to running work halt"});
             }
     }
@@ -753,7 +754,7 @@ class Jog extends React.Component {
                                         <td>
                                             <button id="exhaustOn" type="button" data-title="Exhaust On" className="btn btn-ctl btn-default" onClick={(e) => { this.exhaustOn(e) }}>
                                                 <span className="fa-stack fa-1x">
-                                                    <i className="fa fa-power-off fa-stack-1x"></i>
+                                                    <i className="fa fa-cloud fa-stack-1x"></i>
                                                     <strong className="fa-stack-1x icon-top-text">Exhaust</strong>
                                                     <strong className="fa-stack-1x icon-bot-text">On</strong>
                                                 </span>
