@@ -256,6 +256,7 @@ class Com extends React.Component {
         });
 
         socket.on('data', function (data) {
+            console.log('on.data: '+data);
             serverConnected = true;
             machineConnected = true;
             if (data) {
@@ -270,6 +271,9 @@ class Com extends React.Component {
                         style = CommandHistory.DANGER;
                     } else if (data.indexOf('error:') === 0) {
                         style = CommandHistory.DANGER;
+                    } else if (data.indexOf('success:') === 0) {
+                        style = CommandHistory.SUCCESS;
+                        data = data.substring(8);
                     }
                     CommandHistory.write(data, style);
                 }
