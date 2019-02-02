@@ -308,7 +308,6 @@ class Jog extends React.Component {
 
         if (!this.state.isPlaying)
             this.setState({ liveJogging: { ... this.state.liveJogging, hasHomed: true, disabled: false } })
-
         runCommand(cmd);
     }
 
@@ -393,8 +392,7 @@ class Jog extends React.Component {
     }
 
     checkGcodeBounds(gcode){
-        CommandHistory.warn("GCODE: "+gcode);
-        let bounds=this.getGcodeBounds(gcode)
+        let bounds = this.getGcodeBounds(gcode)
         let {settings} = this.props
         if (bounds && (
             (bounds.xMax > settings.machineWidth) || (bounds.xMin < 0) ||
@@ -756,7 +754,6 @@ class Jog extends React.Component {
                                                 <span className="fa-stack fa-1x">
                                                     <i className="fa fa-cloud fa-stack-1x"></i>
                                                     <strong className="fa-stack-1x icon-top-text">Exhaust</strong>
-                                                    <strong className="fa-stack-1x icon-bot-text">On</strong>
                                                 </span>
                                             </button>
                                         </td>
