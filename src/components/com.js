@@ -84,7 +84,7 @@ class Com extends React.Component {
 
         socket.on('disconnect', function() {
             CommandHistory.error('Disconnected from Server ' + settings.comServerIP)
-            //console.log('Disconnected from Server ' + settings.commServerIP);
+            //console.log('Disconnected from Server ' + settings.comServerIP);
             serverConnected = false;
             $('#connectS').removeClass('disabled');
             $('#disconnectS').addClass('disabled');
