@@ -39,6 +39,7 @@ const formatPorts=(data)=>{
 class Com extends React.Component {
 
     constructor(props) {
+        // Only called when tab is clicked
         super(props);
         let {comInterfaces, comPorts, comAccumulatedJobTime} = this.props.settings;
         accumulatedJobTime = comAccumulatedJobTime;
@@ -46,6 +47,7 @@ class Com extends React.Component {
     }
 
     componentDidMount() {
+        // Called after render()
         if (!serverConnected) {
             $('#connectS').removeClass('disabled');
             $('#disconnectS').addClass('disabled');
@@ -93,21 +95,12 @@ class Com extends React.Component {
             $('#disconnect').addClass('disabled');
         });
 
-//        socket.on('open', function(data) {
-//            serverConnected = true;
-//            $('#connectS').addClass('disabled');
-//            $('#disconnectS').removeClass('disabled');
-//            // Web Socket is connected
-//            //console.log('open ' + data);
-//            socket.emit('getInterfaces');
-//            socket.emit('getPorts');
-//            CommandHistory.write('Socket opened: ' + data + '(' + socket.id + ')', CommandHistory.INFO);
-//        });
-
         socket.on('serverConfig', function (data) {
+            console.log('serverConfig ');
             serverConnected = true;
             let serverVersion = data.serverVersion;
             dispatch(setSettingsAttrs({comServerVersion: serverVersion}));
+            dispatch(setSettingsAttrs({autoLoadProfile: data.autoLoadProfile}));
             //CommandHistory.write('Server version: ' + serverVersion, CommandHistory.INFO);
             console.log('serverVersion: ' + serverVersion);
         });
@@ -501,6 +494,7 @@ class Com extends React.Component {
     }
 
     render() {
+        // Not called until tab is clicked
         let {settings, dispatch} = this.props;
 
         return (
