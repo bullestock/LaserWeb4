@@ -305,7 +305,11 @@ class Jog extends React.Component {
     homeAll() {
         console.log('homeAll');
         let cmd = this.props.settings.gcodeHoming;
-
+        if (!this.props.settings.gcodeHoming || (this.props.settings.gcodeHoming.length === 0))
+        {
+            CommandHistory.warn("Warning: No gcode configured for homing, please load a machine profile");
+            return;
+        }
         if (!this.state.isPlaying)
             this.setState({ liveJogging: { ... this.state.liveJogging, hasHomed: true, disabled: false } })
         runCommand(cmd);
