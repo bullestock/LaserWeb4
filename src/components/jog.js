@@ -398,7 +398,7 @@ class Jog extends React.Component {
         if (bounds && (
             (bounds.xMax >settings.machineWidth) || (bounds.xMin < 0) ||
             (bounds.yMax > settings.machineHeight) || (bounds.yMin < 0))) {
-                CommandHistory.warn("Warning: Gcode out of machine bounds, can lead to running work halt")
+                CommandHistory.warn("Warning: Gcode out of machine bounds, can lead to running work halt [" + bounds.xMin + ", " + bounds.xMax + ", " + bounds.yMin + ", " + bounds.yMax + "]")
                 this.setState({'warnings':"Warning: Gcode out of machine bounds, can lead to running work halt"});
             }
     }
