@@ -18,6 +18,7 @@ import io from 'socket.io-client';
 var socket, connectVia;
 var serverConnected = false;
 var machineConnected = false;
+var exhaustOn = false;
 var jobStartTime = -1;
 var accumulatedJobTime = 0;
 var playing = false;
@@ -38,6 +39,7 @@ const formatPorts=(data)=>{
 class Com extends React.Component {
 
     constructor(props) {
+        // Only called when tab is clicked
         super(props);
         let {comInterfaces, comPorts, comAccumulatedJobTime} = this.props.settings;
         accumulatedJobTime = comAccumulatedJobTime;
@@ -45,6 +47,7 @@ class Com extends React.Component {
     }
 
     componentDidMount() {
+        // Called after render()
         if (!serverConnected) {
             $('#connectS').removeClass('disabled');
             $('#disconnectS').addClass('disabled');
@@ -83,7 +86,7 @@ class Com extends React.Component {
 
         socket.on('disconnect', function() {
             CommandHistory.error('Disconnected from Server ' + settings.comServerIP)
-            //console.log('Disconnected from Server ' + settings.commServerIP);
+            //console.log('Disconnected from Server ' + settings.comServerIP);
             serverConnected = false;
             $('#connectS').removeClass('disabled');
             $('#disconnectS').addClass('disabled');
@@ -92,21 +95,12 @@ class Com extends React.Component {
             $('#disconnect').addClass('disabled');
         });
 
-//        socket.on('open', function(data) {
-//            serverConnected = true;
-//            $('#connectS').addClass('disabled');
-//            $('#disconnectS').removeClass('disabled');
-//            // Web Socket is connected
-//            //console.log('open ' + data);
-//            socket.emit('getInterfaces');
-//            socket.emit('getPorts');
-//            CommandHistory.write('Socket opened: ' + data + '(' + socket.id + ')', CommandHistory.INFO);
-//        });
-
         socket.on('serverConfig', function (data) {
+            console.log('serverConfig ');
             serverConnected = true;
             let serverVersion = data.serverVersion;
             dispatch(setSettingsAttrs({comServerVersion: serverVersion}));
+            dispatch(setSettingsAttrs({autoLoadProfile: data.autoLoadProfile}));
             //CommandHistory.write('Server version: ' + serverVersion, CommandHistory.INFO);
             console.log('serverVersion: ' + serverVersion);
         });
@@ -138,6 +132,7 @@ class Com extends React.Component {
                 dispatch(setSettingsAttrs({comPorts: data}));
                 //console.log('ports: ' + ports);
                 CommandHistory.write('Serial ports detected: ' + JSON.stringify(data));
+                that.handleConnectMachine();
             } else {
                 CommandHistory.error('No serial ports found on server!');
             }
@@ -256,6 +251,7 @@ class Com extends React.Component {
         });
 
         socket.on('data', function (data) {
+            console.log('on.data: '+data);
             serverConnected = true;
             machineConnected = true;
             if (data) {
@@ -270,6 +266,9 @@ class Com extends React.Component {
                         style = CommandHistory.DANGER;
                     } else if (data.indexOf('error:') === 0) {
                         style = CommandHistory.DANGER;
+                    } else if (data.indexOf('success:') === 0) {
+                        style = CommandHistory.SUCCESS;
+                        data = data.substring(8);
                     }
                     CommandHistory.write(data, style);
                 }
@@ -489,8 +488,13 @@ class Com extends React.Component {
         socket.emit('closePort');
     }
 
+    handlePowerOff() {
+        CommandHistory.write('Powering off', CommandHistory.INFO);
+        socket.emit('powerOff');
+    }
 
     render() {
+        // Not called until tab is clicked
         let {settings, dispatch} = this.props;
 
         return (
@@ -522,6 +526,10 @@ class Com extends React.Component {
                             <Button id="disconnect" bsClass="btn btn-xs btn-danger" onClick={(e)=>{this.handleDisconnectMachine(e)}}><Glyphicon glyph="trash" /> Disconnect</Button>
                         </ButtonGroup>
                     </Panel>
+
+                    <Panel collapsible header="Power" bsStyle="primary" defaultExpanded={true}>
+                        <Button id="powerOff" bsClass="btn btn-xs btn-info" onClick={(e)=>{this.handlePowerOff(e)}}><Glyphicon glyph="off" /> Power off</Button>
+                    </Panel>
                 </PanelGroup>
             </div>
         )
@@ -546,6 +554,7 @@ function updateStatus(data) {
     // Smoothieware: <Idle,MPos:49.5756,279.7644,-15.0000,WPos:0.0000,0.0000,0.0000>
     // till GRBL v0.9: <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000>
     // since GRBL v1.1: <Idle|WPos:0.000,0.000,0.000|Bf:15,128|FS:0,0|Pn:S|WCO:0.000,0.000,0.000> (when $10=2)
+    // GRBL-Lasersaur: |Pn:XYZ12c|
 
     // Extract state
     var state = data.substring(data.indexOf('<') + 1, data.search(/(,|\|)/));
@@ -616,6 +625,43 @@ function updateStatus(data) {
 //        }
     }
     $('#machineStatus').html(state);
+    var pin_state_idx = data.indexOf('|Pn:');
+    if (pin_state_idx > 0)
+    {
+        pin_state_idx += 4;
+        var d = data.substring(pin_state_idx);
+        var end = d.search(/(\||>)/);
+        var ext_state = d.substring(0, end);
+        var door_ok = true;
+        var chiller_ok = true;
+        for (var i = 0; i < ext_state.length; ++i)
+        {
+            if ((ext_state[i] == '1') || (ext_state[i] == '2'))
+                door_ok = false;
+            if (ext_state[i] == 'c')
+                chiller_ok = false;
+        }
+        var ext_status = '';
+        var sep = '';
+        if (!door_ok)
+        {
+            ext_status = 'Door';
+            sep = ', ';
+        }
+        if (!chiller_ok)
+            ext_status += sep + 'Chiller';
+        $("#machineStatusEx").html(ext_status);
+        if (ext_status.length === 0)
+        {
+            $("#machineStatus").addClass('badge-ok');
+            $("#machineStatus").removeClass('badge-notify');
+        }
+        else
+        {
+            $("#machineStatus").addClass('badge-notify');
+            $("#machineStatus").removeClass('badge-ok');
+        }
+    }
 }
 
 
@@ -871,15 +917,29 @@ export function resetMachine() {
     }
 }
 
-export function turnExhaustOn() {
+export function toggleExhaust() {
     if (serverConnected) {
         if (machineConnected){
-            CommandHistory.error('Exhaust On')
-            socket.emit('exhaustOn');
-        } else {
+            if (exhaustOn)
+            {
+                CommandHistory.error('Exhaust Off');
+                socket.emit('exhaustOn', '0');
+                exhaustOn = false;
+            }
+            else
+            {
+                CommandHistory.error('Exhaust On');
+                socket.emit('exhaustOn', '1');
+                exhaustOn = true;
+            }
+        }
+        else
+        {
             CommandHistory.error('Machine is not connected!')
         }
-    } else {
+    }
+    else
+    {
         CommandHistory.error('Server is not connected!')
     }
 }

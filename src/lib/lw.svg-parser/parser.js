@@ -30,6 +30,7 @@ class Parser {
             'line', 'polyline', 'polygon',
             'rect', 'circle', 'ellipse', 'path',
             'title', 'desc', 'image', 'text'
+            //'metadata'
         ]
 
         // Tags list to includes/excludes
@@ -178,7 +179,7 @@ class Parser {
             }
 
             reader.onerror = event => {
-                reject(new Error('Error reading file : ' + input.name))
+                reject(new Error('Error reading file: ' + input.name))
             }
 
             // Finally read input file as text
@@ -283,7 +284,7 @@ class Parser {
         if (this._isVendor(tag)) 
             return false;
         
-        console.warn('Skip tag :', message + ':', tag)
+        console.warn('Skip tag: ', message + ': ', tag)
         return false
     }
 
@@ -291,7 +292,7 @@ class Parser {
     _skipTagAttr(tag, attr, message) {
         if (this._isVendor(tag,attr)) 
             return false;
-        console.warn('Skip tag attribute :', message + ':', attr, tag)
+        console.warn('Skip tag attribute: ', message + ': ', attr, tag)
         return false
     }
 

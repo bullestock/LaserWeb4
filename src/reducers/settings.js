@@ -54,7 +54,7 @@ export function ValidateSettings(bool = true, rules = SETTINGS_VALIDATION_RULES,
 export const SETTINGS_INITIALSTATE = {
 
     __version: version,
-    __selectedProfile: null,
+    __selectedProfile: 'Lasersaur-GRBL',
     __latestRelease: null,
 
     showMachine: false,
@@ -134,14 +134,14 @@ export const SETTINGS_INITIALSTATE = {
     gcodeCurvePrecision: 0.1,
 
     comServerVersion: 'not connected',
-    comServerIP: 'localhost:8000',
+    comServerIP: '192.168.0.49:80',
     comServerConnect: false,
     comInterfaces: [],
     comPorts: [],
     comAccumulatedJobTime: 0,
 
-    connectVia: '',
-    connectPort: '',
+    connectVia: 'USB',
+    connectPort: '/dev/ttyACM0',
     connectBaud: '115200',
     connectIP: '',
 

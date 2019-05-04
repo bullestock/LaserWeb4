@@ -34,18 +34,18 @@ class MachineProfile extends React.Component {
        let selected=this._getSelectedProfile()
        let profileId = this.state.selected
        if (selected) {
-            confirm("Are you sure? Current settings will be overwritten.",(b)=>{
-                if (b) this.props.onApply({...selected.settings , __selectedProfile: profileId });
+            confirm("Are you sure? Current settings will be overwritten.", (b)=>{
+                if (b) this.props.onApply({...selected.settings, __selectedProfile: profileId });
                 try {
                     let mdb = require('../data/lw.materials/materials/'+profileId.replace("*","")+".json")
                         if (validate(mdb)){
                             if (mdb) {
-                                confirm(`A material database related with ${profileId} has been detected. Do you want to load it?`,(data)=>{
-                                    if (data) this.props.dispatch(importMaterialDatabase(profileId,mdb));
+                                confirm(`A material database related with ${profileId} has been detected. Do you want to load it?`, (data)=>{
+                                    if (data) this.props.dispatch(importMaterialDatabase(profileId, mdb));
                                 })
                             }
                         } else {
-                            CommandHistory.dir(`Material database bundle ${profileId} found corrupt. Please open an issue.`,validate.errors, 2)
+                            CommandHistory.dir(`Material database bundle ${profileId} found corrupt. Please open an issue.`, validate.errors, 2)
                         }
                 } catch(e) {
 
@@ -147,16 +147,8 @@ class MachineProfile extends React.Component {
                     <small className="help-block">Use this dialog to add the current settings to a new profile.</small>
                 </FormGroup>
                 </div>
-            
-            
-           
-            
         )
-        
-        
     }
-    
-    
 }
  
  
