@@ -134,7 +134,7 @@ export const SETTINGS_INITIALSTATE = {
     gcodeCurvePrecision: 0.1,
 
     comServerVersion: 'not connected',
-    comServerIP: '192.168.0.49:80',
+    comServerIP: '10.42.3.155:80',
     comServerConnect: false,
     comInterfaces: [],
     comPorts: [],
