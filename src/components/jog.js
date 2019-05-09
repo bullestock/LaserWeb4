@@ -377,9 +377,11 @@ class Jog extends React.Component {
         this.checkGcodeBounds(props.gcode);
     }
 
-    getGcodeBounds(gcode,decimals=3) {
+    getGcodeBounds(gcode, decimals = 3) {
+	if (gcode.length === 0)
+	    return {xMin: 0, xMax: 0, yMin: 0, yMax: 0}
             let yMin=Number.MIN_VALUE, yMax=Number.MAX_VALUE, xMin=Number.MIN_VALUE, xMax=Number.MAX_VALUE;
-            let parsed=chunk(parseGcode(gcode),9);
+            let parsed=chunk(parseGcode(gcode), 9);
                 parsed.forEach(([g,x,y])=>{
                     if (g && (x || y)){
                         yMin=parseFloat(Math.max(yMin, y)).toFixed(decimals)
@@ -389,7 +391,7 @@ class Jog extends React.Component {
                     }
                 }) 
 
-            let bounds={xMin: Math.min(xMin,xMax), xMax: Math.max(xMin,xMax), yMin:Math.min(yMin,yMax) , yMax:Math.max(yMin,yMax)}
+            let bounds = {xMin: Math.min(xMin,xMax), xMax: Math.max(xMin,xMax), yMin: Math.min(yMin,yMax), yMax: Math.max(yMin,yMax)}
                 
             return bounds
 
