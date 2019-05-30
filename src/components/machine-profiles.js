@@ -76,7 +76,6 @@ class MachineProfile extends React.Component {
             this.props.dispatch(addMachineProfile(this.state.newSlug, {machineLabel: this.state.newLabel, settings: this.props.settings}))
             
         this.setState({selected: this.state.newSlug})
-        
     }
     
     handleInput(e){
@@ -97,8 +96,7 @@ class MachineProfile extends React.Component {
         let description;
         let selected;
         const disabledApply = !this.state.selected.length
-        const disabledDelete= disabledApply || (this.props.profiles[this.state.selected] && this.props.profiles[this.state.selected]._locked)
-        
+        const disabledDelete = disabledApply || (this.props.profiles[this.state.selected] && this.props.profiles[this.state.selected]._locked)
         
         Object.keys(this.props.profiles).forEach((key) => {
             let profile=this.props.profiles[key];
@@ -106,14 +104,13 @@ class MachineProfile extends React.Component {
         });
         
         
-        if (selected=this._getSelectedProfile()){
+        if (selected = this._getSelectedProfile()){
             let settings=stringify(this.props.profiles[this.state.selected].settings);
             let machinedesc=this.props.profiles[this.state.selected].machineDescription;
             description=(<details><summary>{machinedesc? machinedesc : "Details" }</summary><pre>{settings}</pre></details>);
         }
         
         return (
-            
                 <div>
                 <FormGroup controlId="formControlsSelect">
                     <h5>Apply predefined machine profile</h5>
@@ -150,7 +147,6 @@ class MachineProfile extends React.Component {
         )
     }
 }
- 
  
 const mapStateToProps = (state) => {
   return {

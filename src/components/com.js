@@ -100,9 +100,12 @@ class Com extends React.Component {
             serverConnected = true;
             let serverVersion = data.serverVersion;
             dispatch(setSettingsAttrs({comServerVersion: serverVersion}));
-            dispatch(setSettingsAttrs({autoLoadProfile: data.autoLoadProfile}));
-            //CommandHistory.write('Server version: ' + serverVersion, CommandHistory.INFO);
+            CommandHistory.write('Server version: ' + serverVersion, CommandHistory.INFO);
             console.log('serverVersion: ' + serverVersion);
+            if (data.autoLoadProfile)
+            {
+                console.log('Autoloading profile ' + data.autoLoadProfile);
+            }
         });
 
         socket.on('interfaces', function(data) {
