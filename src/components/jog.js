@@ -400,14 +400,23 @@ class Jog extends React.Component {
     checkGcodeBounds(gcode){
         let bounds = this.getGcodeBounds(gcode)
         let {settings} = this.props
-        if (bounds && (
-            (bounds.xMax > settings.machineWidth) || (bounds.xMin < 0) ||
-            (bounds.yMax > settings.machineHeight) || (bounds.yMin < 0))) {
+        if (!bounds)
+            return;
+        let yMin = 0;
+        let yMax = settings.machineHeight;
+        if (settings.machineBottomLeftY < 0)
+        {
+            yMin = settings.machineBottomLeftY;
+            yMax = settings.machineBottomLeftY + settings.machineHeight;
+        }
+        if ((bounds.xMax > settings.machineWidth) || (bounds.xMin < 0) ||
+            (bounds.yMax > yMax) || (bounds.yMin < yMin))
+        {
             CommandHistory.warn("Warning: Gcode [" + bounds.xMin + ", " + bounds.xMax + ", " +
                                 bounds.yMin + ", " + bounds.yMax + "] out of machine bounds [" +
                                 settings.machineWidth + "x" + settings.machineHeight + "], can lead to running work halt")
-                this.setState({'warnings':"Warning: Gcode out of machine bounds, can lead to running work halt"});
-            }
+            this.setState({'warnings':"Warning: Gcode out of machine bounds, can lead to running work halt"});
+        }
     }
 
     laserTest() {
