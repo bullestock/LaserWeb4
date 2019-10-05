@@ -122,7 +122,12 @@ class LaserWeb extends React.Component {
         }
     }
 
+    onUnload(event) {
+        return event.returnValue = "ignored"
+    }    
+
     componentDidMount() {
+        window.addEventListener("beforeunload", this.onUnload);
         updateTitle();
         if (this.glOk) {
             this.setupKeybindings();
