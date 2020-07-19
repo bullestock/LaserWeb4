@@ -88,7 +88,7 @@ export function getLaserCutGcode(props) {
         }
     }
 
-    let gcode = '';
+    let gcode = laserPower < 50 ? '$33=500' : '$33=2000';
 
     for (let pass = 0; pass < passes; ++pass) {
 
