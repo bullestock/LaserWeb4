@@ -381,9 +381,11 @@ class Jog extends React.Component {
 	if (gcode.length === 0)
 	    return {xMin: 0, xMax: 0, yMin: 0, yMax: 0}
             let yMin=Number.MIN_VALUE, yMax=Number.MAX_VALUE, xMin=Number.MIN_VALUE, xMax=Number.MAX_VALUE;
-            let parsed=chunk(parseGcode(gcode), 9);
+            let movementFound=false
+            let parsed=chunk(parseGcode(gcode),9);
                 parsed.forEach(([g,x,y])=>{
                     if (g && (x || y)){
+                        movementFound=true;
                         yMin=parseFloat(Math.max(yMin, y)).toFixed(decimals)
                         xMin=parseFloat(Math.max(xMin, x)).toFixed(decimals)
                         yMax=parseFloat(Math.min(yMax, y)).toFixed(decimals)
@@ -393,30 +395,19 @@ class Jog extends React.Component {
 
             let bounds = {xMin: Math.min(xMin,xMax), xMax: Math.max(xMin,xMax), yMin: Math.min(yMin,yMax), yMax: Math.max(yMin,yMax)}
                 
-            return bounds
-
+            if (movementFound) return bounds;
+            else return;
     }
 
     checkGcodeBounds(gcode){
         let bounds = this.getGcodeBounds(gcode)
         let {settings} = this.props
-        if (!bounds)
-            return;
-        let yMin = 0;
-        let yMax = settings.machineHeight;
-        if (settings.machineBottomLeftY < 0)
-        {
-            yMin = settings.machineBottomLeftY;
-            yMax = settings.machineBottomLeftY + settings.machineHeight;
-        }
-        if ((bounds.xMax > settings.machineWidth) || (bounds.xMin < 0) ||
-            (bounds.yMax > yMax) || (bounds.yMin < yMin))
-        {
-            CommandHistory.warn("Warning: Gcode [" + bounds.xMin + ", " + bounds.xMax + ", " +
-                                bounds.yMin + ", " + bounds.yMax + "] out of machine bounds [" +
-                                settings.machineWidth + "x" + settings.machineHeight + "], can lead to running work halt")
-            this.setState({'warnings':"Warning: Gcode out of machine bounds, can lead to running work halt"});
-        }
+        if (bounds && (
+            (bounds.xMax > settings.machineWidth) || (bounds.xMin < 0) ||
+            (bounds.yMax > settings.machineHeight) || (bounds.yMin < 0))) {
+                CommandHistory.warn("Warning: Gcode out of machine bounds, can lead to running work halt" + "<br/> xMax=" + bounds.xMax + ", xMin=" + bounds.xMin + ", yMax=" + bounds.yMax + ", yMin=" + bounds.yMin)
+                this.setState({'warnings':"Warning: Gcode out of machine bounds, can lead to running work halt"});
+            }
     }
 
     laserTest() {
