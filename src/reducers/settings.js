@@ -138,6 +138,7 @@ export const SETTINGS_INITIALSTATE = {
     gcodeCurvePrecision: 0.1,
 
     comServerVersion: 'not connected',
+    comApiVersion: 'not connected',
     comServerIP: 'lasersaur.hal9k.dk:80',
     comServerConnect: false,
     comInterfaces: [],
@@ -148,6 +149,8 @@ export const SETTINGS_INITIALSTATE = {
     connectPort: '/dev/ttyACM0',
     connectBaud: '115200',
     connectIP: '',
+    connectReset: false,
+    connectQuery: '',
 
     jogStepsize: 1,
     jogFeedXY: 1800,
