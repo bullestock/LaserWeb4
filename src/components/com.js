@@ -35,6 +35,8 @@ var temperature = '';
 
 const MIN_PRESSURE = 50;
 
+export { xOffset, yOffset }
+
 
 const formatPorts=(data)=>{
     return data.map((item)=>{
@@ -358,7 +360,7 @@ class Com extends React.Component {
                 posChanged = true;
             }
             if (posChanged) {
-                CommandHistory.write('Work Offset: ' + xOffset + ' / ' + yOffset + ' / ' + zOffset + ' / ' + aOffset);
+                CommandHistory.write('Workspace Offset: X= ' + xOffset + ', Y= ' + yOffset + ', Z= ' + zOffset + ', A= ' + aOffset);
                 dispatch(setWorkspaceAttrs({ workOffsetX: +xOffset, workOffsetY: +yOffset }));
             }
         });
