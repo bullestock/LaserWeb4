@@ -545,8 +545,7 @@ class Com extends React.Component {
     }
 
     handleDisconnectMachine() {
-        CommandHistory.write('Disconnecting Machine', CommandHistory.INFO);
-        socket.emit('closePort');
+        confirm("This will halt the current running job! Are you sure?", (data) => { if (data) {CommandHistory.write('Disconnecting Machine', CommandHistory.INFO); socket.emit('closePort');}}, !playing)
     }
 
     handlePowerOff() {
