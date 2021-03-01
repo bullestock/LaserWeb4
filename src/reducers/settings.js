@@ -95,7 +95,7 @@ export const SETTINGS_INITIALSTATE = {
     dpiBitmap: 300,
     gcodeFilename: "gcode",
     gcodeExtension: ".gcode",
-    jsonFilename: "Laserweb-",
+    workspaceFilename: "Laserweb-Workspace",
 
     toolGridWidth: 500,
     toolGridHeight: 500,
