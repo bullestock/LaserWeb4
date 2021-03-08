@@ -97,6 +97,7 @@ export const OPERATION_DEFAULTS = (state) => {
         useBlower: state.settings.machineBlowerEnabled,
         useFluid: state.settings.machineFluidEnabled,
         startHeight: isFinite(state.settings.machineZStartHeight) ? state.settings.machineZStartHeight : '',
+        aAxisDiameter: isFinite(state.settings.machineAAxisDiameter) ? state.settings.machineAAxisDiameter : '',
         segmentLength:  state.settings.gcodeSegmentLength,
     }
 }
