@@ -29,7 +29,7 @@ export const OPERATION_INITIALSTATE = {
     toolSpeed: 0,
     stepOver: 40,
     passDepth: 0,
-    startHeight: '',
+    startHeight: 0,
     millRapidZ: 0,
     millStartZ: 0,
     millEndZ: 0,
@@ -96,8 +96,9 @@ export const OPERATION_DEFAULTS = (state) => {
         burnWhite: state.settings.machineBurnWhite,
         useBlower: state.settings.machineBlowerEnabled,
         useFluid: state.settings.machineFluidEnabled,
-        startHeight: isFinite(state.settings.machineZStartHeight) ? state.settings.machineZStartHeight : '',
-        aAxisDiameter: isFinite(state.settings.machineAAxisDiameter) ? state.settings.machineAAxisDiameter : '',
+        millRapidZ: state.settings.machineRapidZ,
+        startHeight: state.settings.machineZStartHeight,
+        aAxisDiameter: state.settings.machineAAxisDiameter,
         segmentLength:  state.settings.gcodeSegmentLength,
     }
 }
