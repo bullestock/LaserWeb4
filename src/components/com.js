@@ -29,8 +29,10 @@ var laserTestOn = false;
 var firmware, fVersion, fDate;
 var xpos, ypos, zpos, apos;
 var xOffset, yOffset, zOffset, aOffset;
-var pressure = '';
+var pressure = 0;
 var temperature = '';
+
+const MIN_PRESSURE = 50;
 
 const formatPorts=(data)=>{
     return data.map((item)=>{
@@ -444,7 +446,7 @@ class Com extends React.Component {
 	socket.on('pressure', function (data) {
 	    // Data is <pressure> <space> <temperature>
 	    data = data.split(' ');
-	    pressure = data[0];
+	    pressure = parseFloat(data[0]).toFixed();
 	    temperature = parseFloat(data[1]).toFixed(2);
 	    setTimeout(function()
 		       {
@@ -677,6 +679,16 @@ function updateStatus(data) {
         {
             $("#machineStatus").addClass('badge-notify');
             $("#machineStatus").removeClass('badge-ok');
+        }
+        if (pressure >= MIN_PRESSURE)
+        {
+            $("#machineInfo").addClass('badge-ok');
+            $("#machineInfo").removeClass('badge-notify');
+        }
+        else
+        {
+            $("#machineInfo").addClass('badge-notify');
+            $("#machineInfo").removeClass('badge-ok');
         }
         $("#machineInfo").html(pressure+' kPa '+temperature+'&deg;C');
     }
