@@ -197,12 +197,12 @@ export function getGcode(settings, documents, operations, documentCacheHolder, s
 
     QE.start((err) => {
         progress(100)
-        let ellapsed=(new Date().getTime()-starttime)/1000;
+        let elapsed=(new Date().getTime()-starttime)/1000;
         if (laserOps && millOps) {
             showAlert("Mixed operation types detected.","warning");
             showAlert("Mixing Laser and Mill/Lathe operations in the same job is not recommended; only use the generated code if you understand the consequences and are sure this is what you want!","danger");
         }
-        showAlert("Ellapsed: "+hhmmss(ellapsed)+String(Number(ellapsed-Math.floor(ellapsed)).toFixed(3)).substr(1),"info");
+        showAlert("Elapsed: "+hhmmss(elapsed)+String(Number(elapsed-Math.floor(elapsed)).toFixed(3)).substr(1),"info");
         done(startCode + gcode.join('\r\n') + endCode);
     })
 
