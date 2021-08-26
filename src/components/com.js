@@ -451,7 +451,7 @@ class Com extends React.Component {
 	    setTimeout(function()
 		       {
 			   socket.emit('getPressure');
-		       }, 10000);
+		       }, 30000);
 	});
     }
 
