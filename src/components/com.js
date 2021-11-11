@@ -580,11 +580,6 @@ class Com extends React.Component {
             }}, ($('#machineStatus').html() != "Run")
     )}
 
-    handlePowerOff() {
-        CommandHistory.write('Powering off', CommandHistory.INFO);
-        socket.emit('powerOff');
-    }
-
     render() {
         // Not called until tab is clicked
         let {settings, dispatch} = this.props;
@@ -621,9 +616,6 @@ class Com extends React.Component {
                         </ButtonGroup>
                     </Panel>
 
-                    <Panel collapsible header="Power" bsStyle="primary" defaultExpanded={true}>
-                        <Button id="powerOff" bsClass="btn btn-xs btn-info" onClick={(e)=>{this.handlePowerOff(e)}}><Glyphicon glyph="off" /> Power off</Button>
-                    </Panel>
                     <Panel collapsible header="Firmware Detection" bsStyle="primary" eventKey="2" defaultExpanded={(!firmware)}>
                         <ToggleField {... { object: this.props.settings, field: 'connectReset', setAttrs: setSettingsAttrs, description: ".   Send reset when connecting", info: Info(<p className="help-block">
                             Some controllers (eg. ESP32 and other recent chipsets) do not auto-reset when a new communications connection is made, preventing the server from detecting them.<br/>Selecting this will make the server send Ctrl-X (reset) automatically upon connecting so that the Firmware can be detected.
