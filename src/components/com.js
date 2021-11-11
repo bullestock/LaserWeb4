@@ -530,8 +530,6 @@ class Com extends React.Component {
         var comServerVersion = this.props.settings.comServerVersion;
         var comApiVersion = this.props.settings.comApiVersion;
 
-        if (compareVersion(comApiVersion, "4.0.7") != 1) CommandHistory.write('Connected server version (' + comServerVersion + ') does not support firmware detection options.',CommandHistory.DANGER);
-
         switch (connectVia) {
             case 'USB':
                 if (!connectPort) {
