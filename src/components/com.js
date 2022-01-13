@@ -40,7 +40,7 @@ export { xOffset, yOffset }
 
 const formatPorts=(data)=>{
     return data.map((item)=>{
-       return { value: item.comName, label:item.manufacturer? `${item.manufacturer} @ ${item.comName}`: item.comName };
+       return { value: item.path, label:item.manufacturer? `${item.manufacturer} @ ${item.path}`: item.path };
     })
 }
 
@@ -164,11 +164,15 @@ class Com extends React.Component {
                 }
                 that.setState({comPorts: data});
                 dispatch(setSettingsAttrs({comPorts: data}));
-                console.log('ports: ' + JSON.stringify(data));
-                CommandHistory.write('Serial ports detected: ' + ports);
+                let ports = new Array();
+                for (var i = 0; i < data.length; i++) {
+                      ports.push(data[i].path);
+                }
+                //console.log('ports: ' + ports);
+                //CommandHistory.write('Serial ports detected: ' + ports);
             } else {
                 console.log('server sent empty serial ports list');
-                CommandHistory.write('No serial ports found on server');
+                CommandHistory.error('No serial ports found on server!');
             }
         });
 
@@ -247,7 +251,7 @@ class Com extends React.Component {
             fDate = data.date;
             dispatch(setComAttrs({ firmware: firmware, firmwareVersion: fVersion && fVersion.toString() }));
             CommandHistory.write('Firmware ' + firmware + ' ' + fVersion + ' detected', CommandHistory.SUCCESS);
-            if (firmware === 'grbl' && fVersion < '1.1e') {
+            if (firmware === 'grbl' && parseFloat(fVersion) < 1.1) {
                 CommandHistory.error('Grbl version too old -> YOU MUST INSTALL AT LEAST GRBL 1.1e')
                 socket.emit('closePort', 1);
                 machineConnected = false;
@@ -256,19 +260,16 @@ class Com extends React.Component {
         });
 
         socket.on('runningJob', function (data) {
-            CommandHistory.write('Running Job!', CommandHistory.WARN);
-            // When connecting to a server that is already running a job, do NOT always pop up an alert with the Job data (Gcode) since a few MB from
-            //  a large job can hang the web browser as it loads and displays. Only Popup an alert if it is short.
-            if (data.length < 512) {
-                CommandHistory.write(data, CommandHistory.STD);
-                alert('<strong>Server Busy:</strong><br/>' + data);
-            } else {
-                CommandHistory.write('Size: ' + data.length + ', current progress unavailable', CommandHistory.STD);
-                alert('<strong>Server Busy:</strong><br/>Running job is ' + data.length + ' bytes long, Current progress is not available.');
-            }
+            CommandHistory.write('runningJob(' + data.length + ')', CommandHistory.WARN);
+            //alert(data);
             //setGcode(data);
             // Do not get running gcode here, there is a seperate call to lw.comm.server 'getRunningJob' that could be used for this purpose.
             // The user should be alerted first, since large data packets from the server can floor the browser while it is recieving and digesting them.
+        });
+
+        socket.on('runningJobStatus', function (data) {
+            CommandHistory.write('Server reports: ' + data, CommandHistory.STD);
+            alert(data);
         });
 
         socket.on('runStatus', function (status) {

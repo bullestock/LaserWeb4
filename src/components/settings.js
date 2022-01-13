@@ -452,16 +452,18 @@ class Settings extends React.Component {
                     <Panel collapsible header="Camera" bsStyle="info" eventKey="6">
                         <div id="novideodevices" style={{ display: "none" }}>
                             <h5 className="header">Video Device List Unavailable</h5>
-                            <small className="help-block">This may be due to running over an insecure connection, blocking in browser preferences, or other 3rd party security protections.</small>
+                            <small className="help-block">This may be due to running over an insecure connection, blocking in browser preferences, or other privacy protections.</small>
                         </div>
                         <div id="localvideodevices">
                             <table width="100%"><tbody><tr>
                                 <td width="45%"><VideoDeviceField {...{ object: this.props.settings, field: 'toolVideoDevice', setAttrs: setSettingsAttrs, description: 'Video Device', disabled: !!this.props.settings['toolWebcamUrl']}} /></td>
                                 <td width="45%"><VideoResolutionField {...{ object: this.props.settings, field: 'toolVideoResolution', setAttrs: setSettingsAttrs, deviceId: this.props.settings['toolVideoDevice'] }} /></td>
                             </tr></tbody></table>
+
                             <ToggleField  {... { object: this.props.settings, field: 'toolVideoOMR', setAttrs: setSettingsAttrs, description: 'Activate OMR', info: Info(<p className="help-block">
                             Enabling this, ARUCO markers will be recognized by floating camera port, allowing stock alignment. <Label bsStyle="warning">Experimental!</Label>
                             </p>,"Optical Mark Recognition"), disabled:!this.props.settings['toolVideoDevice'] }} />
+
                             <Collapse in={this.props.settings.toolVideoOMR}>
                                 <div>
                                     <NumberField {...{ object: this.props.settings, field: 'toolVideoOMROffsetX', setAttrs: setSettingsAttrs, description: 'Camera offset X', units:'mm'  }} />
@@ -471,9 +473,13 @@ class Settings extends React.Component {
                                 </div>
                             </Collapse>
                         </div>
+
                         <hr/>
+
                         <VideoPort height={240} enabled={(this.props.settings['toolVideoDevice'] !== null) || (this.props.settings['toolWebcamUrl'])} />
+
                         <TextField   {... { object: this.props.settings, field: 'toolWebcamUrl', setAttrs: setSettingsAttrs, description: 'Webcam Url' }} disabled={this.props.settings['toolVideoDevice'] !== null} />
+                        
                     </Panel>
 
                     <Panel collapsible header="Macros" bsStyle="info" eventKey="7">
