@@ -159,10 +159,6 @@ class Com extends React.Component {
             $('#connectS').addClass('disabled');
             $('#disconnectS').removeClass('disabled');
             if (data.length > 0) {
-                let ports = new Array();
-                for (var i = 0; i < data.length; i++) {
-                      ports.push(data[i].comName);
-                }
                 that.setState({comPorts: data});
                 dispatch(setSettingsAttrs({comPorts: data}));
                 let ports = new Array();
