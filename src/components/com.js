@@ -130,7 +130,8 @@ class Com extends React.Component {
             dispatch(setSettingsAttrs({comApiVersion: apiVersion}));
             //CommandHistory.write('Server version: ' + serverVersion, CommandHistory.INFO);
             console.log('serverVersion: ' + serverVersion + ', API: ' + apiVersion);
-	    // Request pressure from backend
+            // Request pressure from backend
+            console.log('serverConfig: request pressure');
             socket.emit('getPressure');
         });
 
@@ -158,10 +159,6 @@ class Com extends React.Component {
             $('#connectS').addClass('disabled');
             $('#disconnectS').removeClass('disabled');
             if (data.length > 0) {
-                let ports = new Array();
-                for (var i = 0; i < data.length; i++) {
-                      ports.push(data[i].comName);
-                }
                 that.setState({comPorts: data});
                 dispatch(setSettingsAttrs({comPorts: data}));
                 let ports = new Array();
@@ -491,12 +488,14 @@ class Com extends React.Component {
         });
 
 	socket.on('pressure', function (data) {
+            console.log('on pressure');
 	    // Data is <pressure> <space> <temperature>
 	    data = data.split(' ');
 	    pressure = parseFloat(data[0]).toFixed();
 	    temperature = parseFloat(data[1]).toFixed(2);
 	    setTimeout(function()
 		       {
+                           console.log('timeout: emit pressure');
 			   socket.emit('getPressure');
 		       }, 10000);
 	});
