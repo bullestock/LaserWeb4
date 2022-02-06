@@ -650,7 +650,8 @@ class TagParser {
         let dy = ry * 2
 
         // Handled tag
-        return this._path([
+        this.debug = true
+        let result = this._path([
             'M', x + rx, y,
             'h', w - dx,
             'c', rx, 0, rx, ry, rx, ry,
@@ -662,6 +663,8 @@ class TagParser {
             'c', 0, 0, 0, -ry, rx, -ry,
             'z'
         ])
+        this.debug = false
+        return result
     }
 
     _circle() {
@@ -758,6 +761,8 @@ class TagParser {
         let handler    = null
         let parseError = false
 
+        if (this.debug)
+            console.log('_path: commands.some')
         commands.some(raw => {
             // Remove trailing whitespaces
             raw = raw.trim()
@@ -784,6 +789,8 @@ class TagParser {
                 return parseError = true // break
             }
 
+            if (this.debug)
+                console.log('_path: call handler')
             // Execute command parser
             if (! handler.call(this, this.currentCommand.params)) {
                 return parseError = true // break
@@ -796,6 +803,8 @@ class TagParser {
                 this.lastCommand[key] = this.currentCommand[key]
             })
         })
+        if (this.debug)
+            console.log('_path: commands.some done')
 
         // Skip tag
         if (parseError) {
