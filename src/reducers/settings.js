@@ -162,10 +162,10 @@ export const SETTINGS_INITIALSTATE = {
     comAccumulatedJobTime: 0,
 
     connectVia: 'USB',
-    connectPort: '/dev/ttyACM0',
+    connectPort: '/dev/ttyS1',
     connectBaud: '115200',
     connectIP: '',
-    connectReset: false,
+    connectReset: true,
     connectQuery: '',
 
     jogStepsize: 1,
