@@ -32,7 +32,6 @@ export const SETTINGS_VALIDATION_RULES = {
     machineAAxisDiameter: 'numeric|min:0.01',
 
     simG0Rate: 'numeric|min:0.01',
-
     simBarWidth: 'numeric|min:12',
 
     toolGridWidth: 'numeric|min:100',

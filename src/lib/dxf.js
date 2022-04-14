@@ -90,7 +90,6 @@ function drawPolyLine(state, polyline, docLayer, index) {
         docEntity.rawPaths[0] = rawPaths;
         docEntity.transform2d = [1, 0, 0, 1, 0, 0];
         docEntity.strokeColor = canvasColor;
-
         docEntity.strokeColorHex = canvasColorHex;
         docEntity.fillColor = [0, 0, 0, 0];
         docEntity.fillColorHex = "000000";

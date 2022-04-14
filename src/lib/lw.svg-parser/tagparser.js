@@ -1072,12 +1072,6 @@ class TagParser {
         // Trace the line
         return this._addPoints(coords, false)
     }
-
-    // _metadata() {
-    //     // Ignored
-    //     return false
-    // }
-
 }
 
 // Exports
