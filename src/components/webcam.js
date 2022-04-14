@@ -1,5 +1,3 @@
-import 'webrtc-adapter';
-
 import React from 'react';
 import ReactDOM from 'react-dom'
 import { connect } from 'react-redux';
@@ -73,7 +71,7 @@ export class VideoResolutionField extends React.Component {
         window.videoCapture.refreshStream({ resolution: resolutionId }, (s) => { console.log('Resolution change: ' + resolutionId + ' [' + s.id + ']') })
     }
 
-    componentWillReceiveProps(nextProps) {
+    UNSAFE_componentWillReceiveProps(nextProps) {
         if (nextProps.deviceId !== this.props.deviceId) {
             this.getResolutions(nextProps.deviceId)
         }
@@ -135,17 +133,20 @@ export class VideoPort extends React.Component {
                         clearTimeout(this.__timeout)
                         if (this.__mounted && this.props.settings.toolWebcamUrl && this.props.enabled){
                             const img=ReactDOM.findDOMNode(this.refs['display'])
-
-                            let src=this.props.settings.toolWebcamUrl;
+                            if (img.complete) {
+                                let src=this.props.settings.toolWebcamUrl;
                                 src+=(src.indexOf('?')>=0)? '&':'?';
                                 src+='time='+(new Date().getTime()/1000)
                                 img.src= src;
-                                selfNode.style.display = 'block'
+                            }
+                            selfNode.style.display = 'block'
                             this.__timeout=setTimeout(imageFetch,5000)
                         }
                     }
                     imageFetch();
                 } else {
+                    const img=ReactDOM.findDOMNode(this.refs['display'])
+                    img.removeAttribute('src')
                     selfNode.style.display = 'none'
                 }
             } else {
@@ -214,9 +215,9 @@ export class VideoPort extends React.Component {
         }
 
         if (this.props.draggable) {
-            return <Rnd
+            return <Rnd style={{ zIndex: 800 }}
                 ref={c => { this.rnd = c; }}
-                initial={{
+                default={{
                     width: this.props.width || 320,
                     height: this.props.height || 240,
                 }}
@@ -226,7 +227,6 @@ export class VideoPort extends React.Component {
                 maxHeight={600}
                 lockAspectRatio={true}
                 bounds={this.props.draggable}
-                zIndex={800}
             >{element}</Rnd>
         } else {
             return <div>{element}</div>;

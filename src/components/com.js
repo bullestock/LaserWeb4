@@ -8,7 +8,7 @@ import { runStatus } from './jog.js';
 import { setSettingsAttrs } from '../actions/settings';
 import { setComAttrs } from '../actions/com';
 import { setWorkspaceAttrs } from '../actions/workspace';
-import { setGcode } from '../actions/gcode';
+// import { setGcode } from '../actions/gcode';
 import CommandHistory from './command-history';
 
 import { alert, prompt, confirm} from './laserweb';
@@ -16,16 +16,16 @@ import { alert, prompt, confirm} from './laserweb';
 import Icon from './font-awesome';
 
 import io from 'socket.io-client';
-var socket, connectVia;
+var socket, connectVia, connectReset;
 var serverConnected = false;
 var machineConnected = false;
 var exhaustOn = false;
+var jobLines = 0;
 var jobStartTime = -1;
 var accumulatedJobTime = 0;
 var playing = false;
 var paused = false;
 var m0 = false;
-var queueEmptyCount = 0;
 var laserTestOn = false;
 var firmware, fVersion, fDate;
 var xpos, ypos, zpos, apos;
@@ -54,7 +54,7 @@ function compareVersion(v1, v2) {
         v1[i] = parseInt(v1[i], 10);
         v2[i] = parseInt(v2[i], 10);
         if (v1[i] > v2[i]) return 1;
-        if (v1[i] < v2[i]) return -1;        
+        if (v1[i] < v2[i]) return -1;
     }
     return v1.length == v2.length ? 0: (v1.length < v2.length ? -1 : 1);
 }
@@ -159,18 +159,17 @@ class Com extends React.Component {
             $('#connectS').addClass('disabled');
             $('#disconnectS').removeClass('disabled');
             if (data.length > 0) {
-                that.setState({comPorts: data});
-                dispatch(setSettingsAttrs({comPorts: data}));
                 let ports = new Array();
                 for (var i = 0; i < data.length; i++) {
                       ports.push(data[i].path);
                 }
-                //console.log('ports: ' + ports);
-                //CommandHistory.write('Serial ports detected: ' + ports);
-                that.handleConnectMachine();
+                that.setState({comPorts: data});
+                dispatch(setSettingsAttrs({comPorts: data}));
+                console.log('ports: ' + JSON.stringify(data));
+                CommandHistory.write('Serial ports detected: ' + ports);
             } else {
                 console.log('server sent empty serial ports list');
-                CommandHistory.error('No serial ports found on server!');
+                CommandHistory.write('No serial ports found on server');
             }
         });
 
@@ -258,11 +257,25 @@ class Com extends React.Component {
         });
 
         socket.on('runningJob', function (data) {
-            CommandHistory.write('runningJob(' + data.length + ')', CommandHistory.WARN);
-            //alert(data);
-            //setGcode(data);
-            // Do not get running gcode here, there is a seperate call to lw.comm.server 'getRunningJob' that could be used for this purpose.
-            // The user should be alerted first, since large data packets from the server can floor the browser while it is recieving and digesting them.
+            // returned by older lw-comm-server, should no longer be used.
+            CommandHistory.write('Running Job!', CommandHistory.WARN);
+            jobLines = data.split(/\r\n|\r|\n/).length
+            if (data.length < 512) {
+                CommandHistory.write(data, CommandHistory.STD);
+                alert('<strong>Server Busy:</strong><br/>' + data);
+            } else {
+                CommandHistory.write('Connected to busy server, Running job size: ' + data.length + ' bytes.', CommandHistory.STD);
+                alert('<strong>Server Busy:</strong><br/>Running job is ' + data.length + ' bytes long.');
+            }
+        });
+
+        socket.on('runningJobStatus', function (data) {
+            // Recieved in response to a reconnect while the server is busy
+            CommandHistory.write('Reconnect; server reports: ' + data, CommandHistory.STD);
+            alert('<strong>Server Busy:</strong><br/>' + data);
+            // Look for the running job size in the response
+            let detail = data.split('done of ',2);
+            jobLines = parseInt(detail[1]) || 0;
         });
 
         socket.on('runningJobStatus', function (data) {
@@ -361,7 +374,7 @@ class Com extends React.Component {
                 y=Number(y)
                 z=Number(z)
                 a=Number(a)
-              
+
             let posChanged = false;
             if ((xOffset !== x) && !isNaN(x)) {
                 xOffset = x;
@@ -437,10 +450,20 @@ class Com extends React.Component {
             $('#disconnect').removeClass('disabled');
             //console.log('qCount ' + data);
             data = parseInt(data);
-            $('#queueCnt').html('Queued: ' + data);
+            let queueState = 'Queue Empty'
+            if (data > 0) {
+                queueState = '';
+                if (jobLines > 0) {
+                    let done = ((jobLines-data)/jobLines)*99.9;
+                    queueState += done.toFixed(1) + '% sent, '
+                }
+                queueState += 'queue: ' + data;
+            }
+            $('#queueCnt').html(queueState);
             if (playing && data === 0) {
                 playing = false;
                 paused = false;
+                jobLines = 0;
                 runStatus('stopped');
                 $('#playicon').removeClass('fa-pause');
                 $('#playicon').addClass('fa-play');
@@ -526,11 +549,11 @@ class Com extends React.Component {
         var connectPort = this.props.settings.connectPort.trim();
         var connectBaud = this.props.settings.connectBaud;
         var connectReset = true;
-        var connectQuery = this.props.settings.connectQuery;
         var connectIP = this.props.settings.connectIP;
         var comServerVersion = this.props.settings.comServerVersion;
         var comApiVersion = this.props.settings.comApiVersion;
 
+        if (compareVersion(comApiVersion, "4.0.7") != 1) CommandHistory.write('Connected server version (' + comServerVersion + ') does not support firmware detection options.', CommandHistory.DANGER);
         switch (connectVia) {
             case 'USB':
                 if (!connectPort) {
@@ -541,24 +564,28 @@ class Com extends React.Component {
                     CommandHistory.write('Could not connect! -> please select baudrate', CommandHistory.DANGER);
                     break;
                 }
-                CommandHistory.write('Connecting Machine via USB/Serial, Port: ' + connectPort + ' @ ' + connectBaud + ' baud; reset on connect: ' + connectReset + ', Query: "' + connectQuery+ '"', CommandHistory.INFO);
-                socket.emit('connectTo', connectVia + ',' + connectPort + ',' + connectBaud + ',' + connectReset + ',' + connectQuery);
+                CommandHistory.write('Connecting Machine via USB/Serial, Port: ' + connectPort + ' @ ' + connectBaud + ' baud; reset on connect: ' + connectReset, CommandHistory.INFO);
+                socket.emit('connectTo', connectVia + ',' + connectPort + ',' + connectBaud + ',' + connectReset);
                 break;
             case 'Telnet':
                 if (!connectIP) {
                     CommandHistory.write('Could not connect! -> please enter IP address', CommandHistory.DANGER);
                     break;
                 }
-                CommandHistory.write('Connecting Machine via Telnet, IP: ' + connectIP + '; reset on connect: ' + connectReset + ', Query: "' + connectQuery+ '"', CommandHistory.INFO);
-                socket.emit('connectTo', connectVia + ',' + connectIP + ',null,' + connectReset + ',' + connectQuery);
+                CommandHistory.write('Connecting Machine via Telnet, IP: ' + connectIP + '; reset on connect: ' + connectReset, CommandHistory.INFO);
+                socket.emit('connectTo', connectVia + ',' + connectIP + ',null,' + connectReset);
                 break;
             case 'ESP8266':
                 if (!connectIP) {
                     CommandHistory.write('Could not connect! -> please enter IP address', CommandHistory.DANGER);
                     break;
                 }
-                CommandHistory.write('Connecting Machine via ESP Socket, IP: ' + connectIP + '; reset on connect: ' + connectReset + ', Query: "' + connectQuery+ '"', CommandHistory.INFO);
-                socket.emit('connectTo', connectVia + ',' + connectIP + ',null,' + connectReset + ',' + connectQuery);
+                CommandHistory.write('Connecting Machine via ESP Socket, IP: ' + connectIP + '; reset on connect: ' + connectReset, CommandHistory.INFO);
+                socket.emit('connectTo', connectVia + ',' + connectIP + ',null,' + connectReset);
+                break;
+            case 'Default':
+                CommandHistory.write('Connecting Machine via default method: ' + '<WORK IN PROGRESS>', CommandHistory.INFO);
+                socket.emit('connectTo', connectVia);
                 break;
         }
     }
@@ -570,6 +597,7 @@ class Com extends React.Component {
             socket.emit('closePort');
             playing = false;
             paused = false;
+            jobLines = 0;
             runStatus('stopped');
             $("#machineStatus").removeClass('badge-ok');
             $("#machineStatus").addClass('badge-notify');
@@ -585,7 +613,7 @@ class Com extends React.Component {
 
         return (
             <div style={{paddingTop: 6}}>
-                <span className="badge badge-default badge-notify" title="Items in Queue" id="machineStatus" style={{ marginRight: 5 }}>Not Connected</span>
+                <span className="badge badge-default badge-notify" title="Machine status" id="machineStatus" style={{ marginRight: 5 }}>Not Connected</span>
 
                 <PanelGroup>
                     <Panel collapsible header="Server Connection" bsStyle="primary" eventKey="1" defaultExpanded={(!serverConnected)}>
@@ -596,7 +624,7 @@ class Com extends React.Component {
                         </ButtonGroup>
                     </Panel>
 
-                    <Panel collapsible header="Machine Connection" bsStyle="primary" eventKey="3" defaultExpanded={(!machineConnected)}>
+                    <Panel collapsible header="Machine Connection" bsStyle="primary" eventKey="2" defaultExpanded={(!machineConnected)}>
                         <SelectField {...{ object: settings, field: 'connectVia', setAttrs: setSettingsAttrs, data: this.state.comInterfaces, defaultValue: '', description: 'Machine Connection', selectProps: { clearable: false } }} />
                         <Collapse in={settings.connectVia == 'USB'}>
                             <div>
@@ -604,21 +632,16 @@ class Com extends React.Component {
                                 <SelectField {...{ object: settings, field: 'connectBaud', setAttrs: setSettingsAttrs, data: ['250000', '230400', '115200', '57600', '38400', '19200', '9600'], defaultValue: '115200', description: 'Baudrate', selectProps: { clearable: false } }} />
                             </div>
                         </Collapse>
-                        <Collapse in={settings.connectVia != 'USB'}>
+                        <Collapse in={settings.connectVia != 'USB' && settings.connectVia != 'Default'}>
                             <div>
                                 <TextField {...{ object: settings, field: 'connectIP', setAttrs: setSettingsAttrs, description: 'Machine IP' }} />
                             </div>
                         </Collapse>
+                        <SelectField {...{ object: settings, field: 'connectReset', setAttrs: setSettingsAttrs, data: ['true', 'false', 'default'], defaultValue: 'default', description: '^X on Connect', selectProps: { clearable: false } }} />
                         <ButtonGroup>
-                            <Button id="connect" bsClass="btn btn-xs btn-info disabled" onClick={(e)=>{this.handleConnectMachine(e)}}><Icon name="share" /> Connect</Button>
+                            <Button id="connect" bsClass="btn btn-xs btn-info disabled"   onClick={(e)=>{this.handleConnectMachine(e)}}><Icon name="share" /> Connect</Button>
                             <Button id="disconnect" bsClass="btn btn-xs btn-danger disabled" onClick={(e)=>{this.handleDisconnectMachine(e)}}><Glyphicon glyph="trash" /> Disconnect</Button>
                         </ButtonGroup>
-                    </Panel>
-
-                    <Panel collapsible header="Firmware Detection" bsStyle="primary" eventKey="2" defaultExpanded={(!firmware)}>
-                        <TextField {...{ object: this.props.settings, field: 'connectQuery', setAttrs: setSettingsAttrs, description: 'Query String', info: Info(<p className="help-block">
-                            Optional query command sent to machine once connected.<br/>eg. <strong>'$I'</strong> on Grbl can be used to show extended firmware information in the console when connecting.
-                            </p>,"Firmware Query String"), style: { fontFamily: "monospace, monospace" } }} />
                     </Panel>
 
                 </PanelGroup>
@@ -788,16 +811,22 @@ export function runCommand(gcode) {
 export function runJob(job) {
     if (serverConnected) {
         if (machineConnected){
-            if (job.length > 0) {
-                CommandHistory.write('Running Job', CommandHistory.INFO);
-                playing = true;
-                runStatus('running');
-                $('#playicon').removeClass('fa-play');
-                $('#playicon').addClass('fa-pause');
-                jobStartTime = new Date(Date.now());
-                socket.emit('runJob', job);
+            if (playing === false) {
+                if (job.length > 0) {
+                    jobLines = job.split(/\r\n|\r|\n/).length
+                    CommandHistory.write('Running Job; ' + jobLines + ' lines', CommandHistory.INFO);
+                    playing = true;
+                    jobLines = job.split(/\r\n|\r|\n/).length
+                    runStatus('running');
+                    $('#playicon').removeClass('fa-play');
+                    $('#playicon').addClass('fa-pause');
+                    jobStartTime = new Date(Date.now());
+                    socket.emit('runJob', job);
+                } else {
+                    CommandHistory.error('Job empty!')
+                }
             } else {
-                CommandHistory.error('Job empty!')
+                CommandHistory.error('Machine is already busy!')
             }
         } else {
             CommandHistory.error('Machine is not connected!')
@@ -850,6 +879,7 @@ export function abortJob() {
             playing = false;
             paused = false;
             m0 = false;
+            jobLines = 0;
             runStatus('stopped');
             $('#playicon').removeClass('fa-pause');
             $('#playicon').addClass('fa-play');

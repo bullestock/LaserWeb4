@@ -197,7 +197,8 @@ export function getLaserRasterGcodeFromOp(settings, opIndex, op, docsWithImages,
                     ppi: { x: settings.dpiBitmap, y: settings.dpiBitmap},
                     toolDiameter: op.laserDiameter,
                     beamRange: { min: 0, max: settings.gcodeSMaxValue },
-                    beamPower: op.laserPowerRange, //Go go power rangeR!
+                    beamPower: { min: op.laserPowerMin, max: op.laserPowerMax },
+                    beamCutoff: op.laserPowerCutoff,
                     rapidRate: false,
                     feedRate,
                     offsets: {
@@ -207,6 +208,7 @@ export function getLaserRasterGcodeFromOp(settings, opIndex, op, docsWithImages,
                     trimLine: op.trimLine,
                     joinPixel: op.joinPixel,
                     burnWhite: op.burnWhite,
+                    laserHasIntensity: settings.machineLaserHasIntensity,
                     verboseG: op.verboseGcode,
                     vertical: op.vertical,
                     diagonal: op.diagonal,
@@ -238,7 +240,7 @@ export function getLaserRasterGcodeFromOp(settings, opIndex, op, docsWithImages,
                             pixels: rtg.pixels
                         }
 
-                        let rasterWorker = require('worker-loader!./workers/cam-raster.js')
+                        let rasterWorker = require('./workers/cam-raster.worker.js')
                         let r2g = new rasterWorker();
                         r2g.onmessage = function (event) {
                             if (event.data.event === 'onDone') {

@@ -19,7 +19,7 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import { connect } from 'react-redux';
 
-import { loadDocument, setDocumentAttrs, cloneDocumentSelected, selectDocuments,colorDocumentSelected,removeDocumentSelected } from '../actions/document';
+import { loadDocument, setDocumentAttrs, cloneDocumentSelected, selectDocuments, colorDocumentSelected, removeDocumentSelected, selectDocumentsByColor } from '../actions/document';
 
 import { setGcode, generatingGcode } from '../actions/gcode';
 import { resetWorkspace } from '../actions/laserweb';
@@ -43,6 +43,8 @@ import CommandHistory from './command-history'
 import { FileField, Info, ColorPicker, SearchButton } from './forms'
 
 import { promisedImage, imageTagPromise } from './image-filters';
+
+import convert from 'color-convert'
 
 export const DOCUMENT_FILETYPES = '.png,.jpg,.jpeg,.bmp,.gcode,.g,.svg,.dxf,.tap,.gc,.nc'
 
@@ -80,7 +82,7 @@ class Cam extends React.Component {
         this.state={filter:null}
     }
 
-    componentWillMount() {
+    UNSAFE_componentWillMount() {
         let that = this
         window.generateGcode = e => {
             let { settings, documents, operations } = that.props;
@@ -190,14 +192,15 @@ class Cam extends React.Component {
                             <ButtonGroup>
                                 <Button  bsStyle="info" bsSize="xsmall" onClick={e=>{this.props.dispatch(selectDocuments(true))}} title="Select all"><Icon name="cubes"/></Button>
                                 <Button  bsStyle="default" bsSize="xsmall" onClick={e=>{this.props.dispatch(selectDocuments(false))}} title="Select none"><Icon name="cubes"/></Button>
+                                <Button  bsStyle="success" bsSize="xsmall" disabled={!someSelected} onClick={e=>{this.props.dispatch(selectDocumentsByColor(e.shiftKey))}} title="Select all with matching path color(s), Press [SHIFT] to select by fill color"><Icon name="eyedropper"/></Button>
                             </ButtonGroup>
                             <Button  bsStyle="warning" bsSize="xsmall" disabled={!someSelected} onClick={e=>{this.props.dispatch(cloneDocumentSelected())}} title="Clone selected"><Icon name="copy"/></Button>
                             <Button  bsStyle="danger" bsSize="xsmall" disabled={!someSelected} onClick={e=>{this.props.dispatch(removeDocumentSelected())}} title="Remove selected"><Icon name="trash"/></Button>
-                            <ButtonGroup>
-                                <ColorPicker to="rgba" icon="pencil" bsSize="xsmall" disabled={!someSelected} onClick={v=>this.props.dispatch(colorDocumentSelected({strokeColor:v||[0,0,0,1]}))}/>
-                                <ColorPicker to="rgba" icon="paint-brush" bsSize="xsmall" disabled={!someSelected} onClick={v=>this.props.dispatch(colorDocumentSelected({fillColor:v||[0,0,0,0]}))}/>
-                            </ButtonGroup>
                             <SearchButton bsStyle="primary" bsSize="xsmall" search={this.state.filter} onSearch={filter=>{this.setState({filter})}} placement="bottom"><Icon name="search"/></SearchButton>
+                            <ButtonGroup style={{ float: 'right' }}>
+                                <ColorPicker to="rgba" icon="pencil" bsSize="xsmall" disabled={!someSelected} onClick={v=>this.props.dispatch(colorDocumentSelected({strokeColor:v||[0,0,0,1], strokeColorHex: convert.rgb.hex(v.slice(0, 3).map(x => x * 255))||"000000" }))}/>
+                                <ColorPicker to="rgba" icon="paint-brush" bsSize="xsmall" disabled={!someSelected} onClick={v=>this.props.dispatch(colorDocumentSelected({fillColor:v||[0,0,0,0], fillColorHex: convert.rgb.hex(v.slice(0, 3).map(x => x * 255))||"000000" }))}/>
+                            </ButtonGroup>
                             </ButtonToolbar>:undefined}
                     </div>
                 </Splitter>
@@ -210,13 +213,13 @@ class Cam extends React.Component {
                                     <ButtonToolbar style={{ float: "right" }}>
                                         <button title="Generate G-Code from Operations below" className={"btn btn-xs btn-attention " + (this.props.dirty ? 'btn-warning' : 'btn-primary')} disabled={!valid || this.props.gcoding.enable} onClick={(e) => this.generateGcode(e)}><i className="fa fa-fw fa-industry" />&nbsp;Generate</button>
                                         <ButtonGroup>
-                                            <button title="View generated G-Code. Please disable popup blockers" className="btn btn-info btn-xs" disabled={!valid || this.props.gcoding.enable} onClick={this.props.viewGcode}><i className="fa fa-eye" /></button>
-                                            <button title="Export G-code to File" className="btn btn-success btn-xs" disabled={!valid || this.props.gcoding.enable} onClick={this.props.saveGcode}><i className="fa fa-floppy-o" /></button>
+                                            <button title="View generated G-Code in a tab. Please disable popup blockers. Press [SHIFT] to avoid large file size confirmation and open in a new window." className="btn btn-info btn-xs" disabled={!valid || this.props.gcoding.enable} onClick={this.props.viewGcode}><i className="fa fa-eye" /></button>
+                                            <button title="Export G-code to File. Press [SHIFT] to edit filename." className="btn btn-success btn-xs" disabled={!valid || this.props.gcoding.enable} onClick={this.props.saveGcode}><i className="fa fa-floppy-o" /></button>
                                             <FileField onChange={this.props.loadGcode} disabled={!valid || this.props.gcoding.enable} accept=".gcode,.gc,.nc">
                                                 <button title="Load G-Code from File" className="btn btn-danger btn-xs" disabled={!valid || this.props.gcoding.enable} ><i className="fa fa-folder-open" /></button>
                                             </FileField>
                                         </ButtonGroup>
-                                        <button title="Clear" className="btn btn-warning btn-xs" disabled={!valid || this.props.gcoding.enable} onClick={this.props.clearGcode}><i className="fa fa-trash" /></button>
+                                        <button title="Clear Current Gcode. Press [SHIFT] to avoid confirmation." className="btn btn-warning btn-xs" disabled={!valid || this.props.gcoding.enable} onClick={this.props.clearGcode}><i className="fa fa-trash" /></button>
                                     </ButtonToolbar>) : <GcodeProgress onStop={(e) => this.stopGcode(e)} />}</td>
                             </tr>
                         </tbody>
@@ -252,7 +255,7 @@ Cam = connect(
                     reader.onload = () => {
                         const release = captureConsole()
 
-                        //console.log('loadDocument: construct Parser');
+                        //console.log('CAM.js: loadDocument: SVG constructing Parser');
                         let parser = new Parser({});
                         parser.parse(reader.result)
                             .then((tags) => {
@@ -266,7 +269,11 @@ Cam = connect(
 
                                 //console.log('loadDocument: imageTagPromise');
                                 imageTagPromise(tags).then((tags) => {
-                                    console.log('loadDocument: dispatch');
+                                    //console.log('loadDocument: SVG: dispatch:');
+                                    //console.log(':: file: ', file);
+                                    //console.log(':: parser: ', parser);
+                                    //console.log(':: tag: ', tags );
+                                    //console.log(':: modifiers: ', modifiers );
                                     dispatch(loadDocument(file, { parser, tags }, modifiers));
                                 })
                             })
@@ -287,6 +294,10 @@ Cam = connect(
                         var dxfTree = helper.toPolylines();
                         // console.log('Imported dfxTree:');
                         // console.log(dxfTree);
+                        //console.log('loadDocument: DXF: dispatch:');
+                        //console.log(':: file: ', file);
+                        //console.log(':: dxfTree: ', dxfTree );
+                        //console.log(':: modifiers: ', modifiers );
                         dispatch(loadDocument(file, dxfTree, modifiers));
                     }
                     reader.readAsText(file);

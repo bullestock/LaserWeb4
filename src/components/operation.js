@@ -16,7 +16,7 @@
 import React from 'react'
 import { connect } from 'react-redux';
 import Select from 'react-select';
-import uuidv4 from 'uuid/v4';
+import { v4 as uuidv4 } from 'uuid';
 
 import { removeOperation, moveOperation, setCurrentOperation, operationRemoveDocument, setOperationAttrs, clearOperations, spreadOperationField, operationLatheTurnAdd, operationLatheTurnRemove, operationLatheTurnSetAttrs } from '../actions/operation';
 import { selectDocument } from '../actions/document'
@@ -84,11 +84,11 @@ function RangeInput(minValue, maxValue) {
 
 function TagInput(statekey, opts = { multi: true, simpleValue: true, delimiter: ',', clearable: true }, connector) {
     if (!connector) connector = (state) => { return { options: Object.entries(getDescendantProp(state, statekey)).map(i => { return { label: i[1].label, value: i[0] } }) } }
-    return connect(connector)(React.createClass({
-        render: function () {
+    return connect(connector)(class extends React.Component {
+        render() {
             return <Select options={this.props.options} value={this.props.op[this.props.field.name]} onChange={e => this.props.onChangeValue(e)} {...{ ...opts }} />
         }
-    }))
+    });
 
 }
 
@@ -127,7 +127,7 @@ function ColorBox(v) {
 }
 
 class FilterInput extends React.Component {
-    componentWillMount() {
+    UNSAFE_componentWillMount() {
         this.onChange = this.onChange.bind(this);
     }
 
@@ -179,7 +179,7 @@ function NoOperationsError(props) {
 }
 
 class Field extends React.Component {
-    componentWillMount() {
+    UNSAFE_componentWillMount() {
         this.onChangeValue = this.onChangeValue.bind(this);
         this.onChange = this.onChange.bind(this);
         this.onFocus = this.onFocus.bind(this);
@@ -211,7 +211,7 @@ class Field extends React.Component {
             error = <Error operationsBounds={operationsBounds} message={(typeof field.error == 'function') ? field.error(op[field.name], settings, op, parent, index) : field.error} />;
 
         let Ctx = field.contextMenu;
-        let label = (Ctx) ? (<Ctx {...{ dispatch, op, field, settings }}><span style={{ borderBottom: "2px dotted blue", cursor: "context-menu" }}>{field.label}</span></Ctx>) : field.label;
+        let label = (Ctx) ? (<Ctx {...{ dispatch, op, field, settings }}><span style={{ borderBottom: "1px dotted darkgray", cursor: "copy" }}>{field.label}</span></Ctx>) : field.label;
 
         if (justControl) {
             return (
@@ -239,7 +239,7 @@ class Field extends React.Component {
 
         return (
             <GetBounds Type="tr">
-                <th width="30%">{label}</th>
+                <th width="50%">{label}</th>
                 <td>
                     <Input
                         {...{ op, field, operationsBounds, fillColors, strokeColors, settings, dispatch, style }}
@@ -252,7 +252,7 @@ class Field extends React.Component {
 };
 
 class Doc extends React.Component {
-    componentWillMount() {
+    UNSAFE_componentWillMount() {
         this.remove = e => {
             this.props.dispatch(operationRemoveDocument(this.props.op.id, this.props.isTab, this.props.id));
         }
@@ -479,7 +479,7 @@ const FieldContextMenu = (id = uuidv4()) => {
         let ctx = <ContextMenu id={id}>
             <MenuItem onClick={e => dispatch(spreadOperationField(op.id, field.name))}>Copy to all Ops</MenuItem>
         </ContextMenu>
-        return <div title="Right click or press long to popup context menu"><ContextMenuTrigger id={id} holdToDisplay={1000}>{children}</ContextMenuTrigger>{ctx}</div>
+        return <div title="Right click or long press for options"><ContextMenuTrigger id={id} holdToDisplay={1000}>{children}</ContextMenuTrigger>{ctx}</div>
     }
 }
 
@@ -497,7 +497,9 @@ export const OPERATION_FIELDS = {
     direction: { name: 'direction', label: 'Direction', units: '', input: DirectionInput, contextMenu: FieldContextMenu() },
 
     laserPower: { name: 'laserPower', label: 'Laser Power', units: '%', input: NumberInput, ...checkPercent, contextMenu: FieldContextMenu() },
-    laserPowerRange: { name: 'laserPowerRange', label: 'Laser Power Range', units: '%', input: RangeInput(0, 100), ...checkRange(0, 100), contextMenu: FieldContextMenu() },
+    laserPowerMin: { name: 'laserPowerMin', label: 'Laser Power Min', units: '%', input: NumberInput, ...checkRange(0, 100), contextMenu: FieldContextMenu() },
+    laserPowerMax: { name: 'laserPowerMax', label: 'Laser Power Max', units: '%', input: NumberInput, ...checkRange(0, 100), contextMenu: FieldContextMenu() },
+    laserPowerCutoff: { name: 'laserPowerCutoff', label: 'Laser Power Cutoff', units: '%', input: NumberInput, ...checkRange(0, 100), contextMenu: FieldContextMenu() },
     laserDiameter: { name: 'laserDiameter', label: 'Laser Diameter', units: 'mm', input: NumberInput, ...checkPositive, contextMenu: FieldContextMenu() },
     lineDistance: { name: 'lineDistance', label: 'Line Distance', units: 'mm', input: NumberInput, ...checkPositive, contextMenu: FieldContextMenu() },
     lineAngle: { name: 'lineAngle', label: 'Line Angle', units: 'deg', input: NumberInput, contextMenu: FieldContextMenu() },
@@ -584,7 +586,7 @@ export const OPERATION_TYPES = {
     'Laser Fill Path': { allowTabs: false, tabFields: false, fields: ['name', 'filterFillColor', 'filterStrokeColor', 'lineDistance', 'lineAngle', 'laserPower', 'margin', 'passes', 'passDepth', 'startHeight', 'cutRate', 'useA', 'aAxisDiameter', 'useBlower', ...OPERATION_GROUPS.Macros.fields] },
     'Laser Raster': {
         allowTabs: false, tabFields: false, fields: [
-            'name', 'laserPowerRange', 'laserDiameter', 'passes', 'passDepth', 'startHeight', 'cutRate', 'useBlower',
+            'name', 'laserPowerMin', 'laserPowerMax', 'laserPowerCutoff', 'laserDiameter', 'passes', 'passDepth', 'startHeight', 'cutRate', 'useBlower',
             'trimLine', 'joinPixel', 'burnWhite', 'verboseGcode', 'vertical', 'diagonal', 'overScan', 'useA', 'aAxisDiameter',
             ...OPERATION_GROUPS.Filters.fields, ...OPERATION_GROUPS.Macros.fields
         ]
@@ -592,7 +594,7 @@ export const OPERATION_TYPES = {
     'Laser Raster Merge': {
         allowTabs: false, tabFields: false, fields: [
             'name', 'filterFillColor', 'filterStrokeColor',
-            'laserPowerRange', 'laserDiameter', 'passes', 'passDepth', 'startHeight', 'cutRate', 'useBlower',
+            'laserPowerMin', 'laserPowerMax', 'laserPowerCutoff', 'laserDiameter', 'passes', 'passDepth', 'startHeight', 'cutRate', 'useBlower',
             'trimLine', 'joinPixel', 'burnWhite', 'verboseGcode', 'vertical', 'diagonal', 'overScan', 'useA', 'aAxisDiameter',
             ...OPERATION_GROUPS.Filters.fields, ...OPERATION_GROUPS.Macros.fields
         ]
@@ -654,7 +656,7 @@ const traverseDocumentTypes = (ids, documents) => {
 
 class Operation extends React.Component {
 
-    componentWillMount() {
+    UNSAFE_componentWillMount() {
         this.setType = e => this.props.dispatch(setOperationAttrs({ type: e.target.value }, this.props.op.id));
         this.setTypeString = e => this.props.dispatch(setOperationAttrs({ type: e }, this.props.op.id));
         this.toggleExpanded = e => this.props.dispatch(setOperationAttrs({ expanded: !this.props.op.expanded }, this.props.op.id));
@@ -671,7 +673,7 @@ class Operation extends React.Component {
         this.operationGroups = groupFields(OPERATION_TYPES[this.props.op.type].fields)
     }
 
-    componentWillReceiveProps(nextProps) {
+    UNSAFE_componentWillReceiveProps(nextProps) {
 
         if (nextProps.op.documents.length !== this.documentsCount) {
             this.documentsCount = nextProps.op.documents.length
@@ -903,8 +905,9 @@ class Operations extends React.Component {
         }
         return (
             <div style={this.props.style}>
-                <div style={{ backgroundColor: '#eee', padding: '20px', border: '3px dashed #ccc', marginBottom: 5 }} data-operation-id="new">
-                    <b>Drag document(s) here to add</b>
+                <div style={{ backgroundColor: '#eee', padding: '8px 16px', border: '3px dashed #ccc', marginBottom: 5 }} data-operation-id="new">
+                    <span style={{ paddingRight: '1em' }} className="fa fa-fw fa-plus"></span>
+                    <b>Drag documents here from the list above</b>
                     <NoOperationsError operationsBounds={bounds} documents={documents} operations={operations} />
                 </div>
                 <OperationToolbar />

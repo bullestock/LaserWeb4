@@ -29,8 +29,8 @@ class Parser {
             'svg', 'g', 'defs', 'use',
             'line', 'polyline', 'polygon',
             'rect', 'circle', 'ellipse', 'path',
-            'title', 'desc', 'image', 'text'
-            //'metadata'
+            'title', 'desc', 'image', 'text',
+            'flowroot', 'metadata'
         ]
 
         // Tags list to includes/excludes
