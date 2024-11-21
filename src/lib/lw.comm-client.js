@@ -200,6 +200,9 @@ export function initSocket(server) {
         }
     });
     
+    socket.on('pressure', function (data) {
+        console.log('Pressure: ' + data);
+    });
 
     $('#refreshPort').on('click', function () {
         $('#port').find('option').remove().end();
